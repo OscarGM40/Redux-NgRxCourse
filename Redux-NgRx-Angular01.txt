@@ -1,0 +1,243 @@
+					REDUX Y NGRX EN ANGULAR
+
+Playlist: https://www.youtube.com/watch?v=sgFQjRL5niY&list=PLCKuOXG0bPi3FtoplJe0JOpiV6OyK30wd&index=2
+* Todo lo de la playlist está en el curso de Udemy.
+
+						SECCION 02 
+
+NOTA: puedo ver las versiones de typescript o rxjs de Angular con ng version
+
+En esta sección es introductoria y con mucha teoría, no se preocupen intente hacer cada video entretenido y lo suficiente explícito para que comprendan los fundamentos de Redux antes de empezar con el código.
+
+Aquí veremos cosas como:
+
+1- ¿Qué es Redux?
+2- ¿Para qué sirve?
+3- Que son las:
+    a- Acciones
+    b- Reducers
+    c- State
+    d- Store
+Al final, también les dejo un enlace con la documentación oficial de Redux por si acaso quieren saber más teoría
+
+						VIDEO 08 QUE ES REDUX
+
+Redux no es más que un patrón para el manejo de la información.Me permitirá acceder a información que conteste a preguntas como:
+¿Cual es el estado de la aplicación?
+¿Cual es el valor de determinado variable?
+¿Quien cambió ese valor?
+¿En que momento cambió? ...etc
+
+NOTA: puedo implementar redux en Angular,React,Vue,VanillaJs,... es un patrón agnóstico.
+
+IDEAS PRINCIPALES:
+
+1- Toda la data de la aplicación se encuentra en una estructura previamente definida(initialState)
+2- Toda la información se encontrará almacenada en un único lugar,el STORE.Este strore normalmente contiene el 99% de la información.
+3- El store JAMÁS SE MODIFICA de forma directa.Nunca muta.
+4- Las interacciones del usuario y/o código dispara acciones que describen qué sucedió.Todo esto lo puedo ver en las DevTools
+5- El valor actual de la información de la aplicación se llama estado-STATE
+6- Un nuevo estado es creado en base a la combinación del viejo estado y una ACCIÖN,mediante una función llamada REDUCER
+
+NOTA:recuerda que se cambia de estado tomando una acción(la cual me guiará al reducer) y el VIEJO ESTADO.El reducer tomará esa acción y el viejo estado y produce un nuevo estado.
+
+VENTAJAS. En una aplicación pequeña, con pocas entradas y manejo de datos, implementar el redux es mucho tiempo para algo simple y poco confuso.
+
+Pero en una aplicación con muchos componentes, con muchos servicios y modificaciones a la información, es muy difícil saber quien modificó que... o como se debería de comportar la aplicación... la idea del patrón es que sea predecible y fácil de entender por todos los desarrolladores, que quede claro qué acción es ejecutada y en qué momento se actualiza la misma.
+
+			VIDEO 09 CONCEPTOS ACTION-REDUCER-STATE-STORE
+
+Estas cuatro estructuras son fundamentales para entender el patrón redux.Son las acciones,el reducer,el state y el store
+
+Action: es la única fuente de información que se envía por interacciones de usuario o programa.Por lo general,se busca que las acciones sean lo más simples posibles
+Una actión únicamente tiene dos propiedades,el type y el payload,que es opcional.
+El payload es la menor cantidad posible de información necesaria para realizar dicha tarea.El type si es obligatorio
+
+Reducer: no es más que una simple función que recibe dos argumentos y siempre retorna un nuevo estado.Recibe el oldState y las acciones.
+El oldState es el estado actual de la aplicación.
+La action es un plain object que indica qué hay que hacer.Recuerda que las acciones y el payload deben ser lo más simples posibles.
+
+El state:es un objeto que representa el estado de la aplicación.Tiene ciertas reglas:
+1- El state es de sólo lectura
+2- Nunca se mutará el state de forma directa
+3- Hay funciones prohibidas de Javascript como el push(básicamente cualquier cosa que modifique objetos ya que todos los objetos son pasados por referencia).
+ 
+El store es un objeto con las siguientes responsabilidades:
+1- Contiene el estado de la aplicación
+2- Permite la lectura del mismo(via getState())
+3- Permite crear un nuevo estado al utilizar dispatch(ACTION)
+4- Permite notificar los cambios(via subscribe())
+
+Estos cuatro conceptos son fundamentales.Una action es un plain object con dos proiedades,un reducer toma el oldState y una action y devuelve uno nuevo.El state es un object que representa el estado de la app y el store básicamente gestiona todo por nosotros.
+
+NOTA:puedo consultar su web oficial aquí:
+ https://es.redux.js.org/ <- redux normal
+Aqui en Inglés: https://redux.js.org/ <- redux toolkit
+
+Usar la de inglés que suele ser mejor.
+
+			SECCION 03 IMPLEMENTAR REDUX DESDE CERO EN JS 
+
+Aquí tocaremos temas como:
+
+1- Crear el patrón Redux desde absoluto cero
+2- Integrar TypeScript para correrlo con Node
+3- Crear acciones
+4- Crear reducers básicos
+5- Organización del proyecto y sus ejemplos
+6- Manejo del Store
+7- Subscripciones de cambios en el Store.
+
+Al final de esta sección, tienen el código fuente que pueden descargar para compararlo contra el suyo en caso de ser necesario
+
+						VIDEO 14 REDUX BÁSICO
+
+Antes de empezar con librerias y ngRx vamos a crear un ejemplo básico,eso si,en typescript.Para usar typescript lo mejor es usar ts-node(puedo buscar en npm por el módulo).
+Me pedirá instalar(siempre en global) typescript y el compilador/ejecutor ts-node:npm i -g ts-node
+npm i -g typescript
+Puedo ver con npm ls -g que ya los tengo.Bien podría instalarlos a nivel de proyecto en vez de en mi Sistema Operativo pero se supone que los voy a usar a menudo.
+Sin embargo podría instalarlos a nivel de proyecto si fuera necesario.
+npm i ts-node -D 
+npm i typescript -D <- al ser typescript debería instalarlos en modo dev!
+
+Para ejecutarlo sin la libreria de forma global puedo usar varias aproximaciones:1- npx viene incluido con la instalación de node y permite ejecutar paquetes instalados en el proyecto local:
+npx ts-node app.ts
+2- crear un script referenciando la libreria
+scripts: {
+ "run":"./node_modules/.bin/ts-node" <- pues eso
+
+				VIDEO 15 ACCIONES Y REDUCER NIVEL BÁSICO
+
+Para definir una acción puedo hacerlo de varias formas,pero una muy simple y sencilla es definir una interfaz con las propiedades type y payload,éste último opcional, ya que una Action debe ser un objeto que cumple esto:
+
+interface Action {
+  type: string;
+  payload?:any
+}
+
+Despues ya puedo declarar acciones que cumplan este contrato:
+const incrementadorAction:Action = {
+   type:'INCREMENTAR'
+}
+Y la función reducer es una simple función que recibe un oldState(no undefined) y una  acción(ojo,recibe una).Al ser un oldState la primera vez será el initialState.Nunca puede ser undefined el state:
+
+function reducer(state=10,action:Action){
+  switch(action.type){
+  	case 'INCREMENTAR':
+      return state += 1;
+    default:
+      return state;
+  }
+Lógicamente no se le pasa el state=10 sino una interface/clase.
+
+			VIDEO 16 CREANDO MÁS ACCIONES EN NUESTRO REDUCER
+
+Puede parecer que un reducer no es más que un gigantesco switch dentro de una función,y es cierto.Sin embargo suele separarse en pequeños reducer separando la lógica de mi aplicación.
+Dado que es una función pura no puedo usar peticiones http en ese switch,por ejemplo 
+Importante,el operador +number no quita los decimales ni pasa a string:
++67.77777 + 1 = 68.77777 as Number
+simplemente pasa a Number
+
+Volviendo al video,destacar que cuando una acción necesita pasar un argumento se usa el payload.Como no siempre lo hará por eso es opcional:
+
+function reducer(state = 10, action: Action) {
+  switch (action.type) {
+    case 'INCREMENTAR':
+      return state + 1;
+    case 'DECREMENTAR':
+      return state - 1;
+    case 'MULTIPLICAR':
+      return state * +action.payload;
+    case 'DIVIDIR':
+      return +(state / +action.payload).toFixed(4);
+    default:
+      return state;
+  }
+
+				VIDEO 17 ORGANIZANDO MEJOR EL PROYECTO
+
+No es buena idea tener todo en un archivo como tenemos ahora mismo.Asi pues creo un folder para las interfaces.Un dato interesante,la librería de redux es muy pequeña,como de unas cien líneas.
+En cuanto al archivo de las acciones irá en su folder,en este caso 'contador' y es un standar ponerle .actions.
+Lo mismo para el reducer es un standar usar xxxReducer en su nombre.Irá junto a las acciones para el mismo.
+
+					VIDEO 18 STORE
+
+Debemos crear un store que almacene el estado actual de la aplicación tras cada cambio.Al usar clases por estar en Angular cambia un poco,ya que hay que definir una clase con un getter de acceso a su propiedad privada state:
+
+class Store<T> {
+  constructo( private reducer:Reducer<T>,private state:T){}
+  getState():T{ return this.state; }
+}
+La interfaz para esa propiedad reducer
+export interface Reducer<T>{
+  (state:T,action:Action):T
+  }
+Ahora,para crear un estado inicialializo una instancia(confirmar que es así por ser Angular).
+const store = new Store(reducer,10);
+* Y para acceder al state necesitaré usar el getter ya que está encapsulado.Genial:
+console.log(store.getState());
+
+Recuerda que el store tiene dos objetivos fundamentales,albergar los cambios en el state y disparar las acciones.Sin él no podría persistir los cambios en el state.
+Asi pues nos falta definir el método dispatch en la clase Store:
+  /* recuerda que el dispatch es una función que recibe una action por argumento.Despues retornará un newState */
+  dispatch(action: Action):void{
+    this.state = this.reducer(this.state,action);
+  }
+
+Lógicamente,ya no debo disparar las acciones con el reducer,sino con este método:/* Usando el dispatch del store.BIEN.Cada cambio en el state queda persistido localmente. */
+store.dispatch(incrementadorAction);
+store.dispatch(incrementadorAction);
+console.log(store.getState());
+store.dispatch(decrementadorAction);
+console.log(store.getState());
+store.dispatch(multiplicarAction);
+console.log(store.getState());
+store.dispatch(dividirAction);
+console.log(store.getState());
+store.dispatch(resetAction);
+console.log(store.getState());
+
+Puedo ver que ha sido facilisimo implementar este patrón en vanilla JS/TS con una simple clase,apenas dos interfaces y una función.
+Por último,es un dolor de cabeza tener que usar console.log para ver el newState.Redux ya trae funcionalidad para que yo pueda ser notificado cuando cambie el estado.Nosotros somos notificados a través de un Observable al que podemos suscribirnos.Genial.
+
+				VIDEO 19 SUSCRIBIRME A LOS CAMBIOS DEL STATE 
+
+Dado que vamos a usar la librería de redux no vamos a tener que definir esa clase tan compleja,podríamos definir todo para poder acceder a ese Observable,pero dado que ya lo han hecho ellos desde ya vamos a usar su librería y ver como se reduce el código:
+npm i redux <- recuerda que esto es para puro Javascript,faltará el adapter
+
+Ya me proveen ellos una función que creará esa Clase,sus métodos dispatch,getState,la propiedad encapsulada state con el estado actual,etc.. Perfecto:
+import { Store,createStore } from 'redux';
+cons store = createStore(contadorReducer);
+store.dispatch(incrementadorAction) <- tengo acceso a todo gracias a ellos
+console.log(store.getState()); <- dará 11.
+
+* Bien,pero habiamos dicho que incluso nos dan un Observable para poder suscribirnos en cada cambio del state(Store._state).
+
+/* 4- Pero lo más genial de todo es que ya nos dan incluso un Observable para suscribirnos.Es la propia ejecución de la función createStore la que es un Observable */
+
+/* no recibe nada en el observer,ya lo manejan ellos.Fijate que esto es genial,pues puedo ser notificado */
+store.subscribe( () =>{
+  console.log('Nuevo state',store.getState());
+});
+Fijate que esto cambia mucho de lo que tenia pensado.Podría ejecutar cualquier lógica al cambiar determinada propiedad del newState.Seguir investigando.
+
+Redux puede ser descrito en tres principios fundamentales:Unica fuente de la verdad,el state es de solo lectura y los cambios en él se realizan con funciones puras.
+
+NOTA:el flujo de datos en una aplicación con redux es unidireccional y siempre sigue la misma dirección y el mismo sentido:
+
+
+IMPORTANTE: El ciclo de duración de la data en cualquier aplicación Redux sigue estos 4 pasos:
+1- Haces una llamada a store.dispatch(action).
+  Puedes invocar store.dispatch(action) desde cualquier lugar en tu aplicación, incluyendo componentes y XHR callbacks, o incluso en intervalos programados.
+
+2- El store en Redux invoca a la función reductora que le indicaste(dado que uśe store.dispatch y la instancia store tiene acceso al método reducer).
+El store pasará dos argumentos al reductor,el oldState(o estado actual) y la action.Tenga en cuenta que un reductor es una función pura.No debe realizar ningún efecto alterno como las llamadas al API o las transiciones del router. Esto debe suceder antes de que se envíe la acción.
+
+3- El reductor raíz puede combinar la salida de múltiples reductores en un único árbol de estado.
+Como se estructure el reductor raíz queda completamente a tu discreción. Redux provee una función combineReducers() si quiero combinar reductores(no es importante pues este paso)
+
+4-El store en Redux guarda por completo el árbol de estado devuelto por el reductor raíz.
+¡Este nuevo árbol es ahora el siguiente estado de tu aplicación!
+Cada listener registrado usando store.subscribe(listener) será ahora invocado; los listeners podrán invocar store.getState() para obtener el estado acutal.
+Ahora, la interfaz de usuario puede actualizarse para reflejar el nuevo estado(de echo un cambio actualiza la interfaz).
+NOTA: seguir con las acciones asíncronas más adelante
