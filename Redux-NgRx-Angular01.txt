@@ -513,8 +513,91 @@ NOTA: seguir viendo redux toolkit
 
 					VIDEO 31 CREATEREDUCER
 
+Recuerda que nos habiamos saltado un paso.NgRx también proporciona una forma de crear la función pura reductora,no hace falta que lo haga yo(aunque puedo usar mi función si quiero)
+Su función createReducer es más eficiente porque no trabaja en base a un switch.Trabaja en base a funciones suyas de la misma libreria ngrx con el objetivo de mejorar la velocidad de respuesta de mi app.
+Además,también es más sencillo de implementar.Veamoslo en código:
 
+/* FORMA CON NGRX Y CREATEREDUCER */
+export const initialState = 10;
+/* la función 'on' permite seleccionar más rápidamente la acción que en el switch  */
+const _contadorReducer = createReducer(
+  initialState,
+  on(incrementar, state => state + 1),
+  on(decrementar, state => state - 1)
+  )
 
+/* ojo que usar la forma anterior implica tener que realizar este paso,pues es el retorno de la función anterior lo que se exporta al store */
+export function contadorReducer(state:number=initialState, action: Action) {
+  return _contadorReducer(state, action);
+}
+/* esto asegura la no-mutación */
+NOTA: TS se volvió mas estricto,hay que pasarle el tipo y valor por defecto al parámetro state.
+En el siguiente video veré como pasar argumentos a las acciones.
 
+					VIDEO 32 STORE EN EL COMPONENTE HIJO
+
+Es momento de recuperar nuestro componente hijo.
+NOTA:NaN*2 es NaN,cualquier operación sobre NaN será NaN.
+
+Fijate que en cuanto llego a la clase del Hijo ya empiezo a ver los beneficios y la legibilidad en el código.NO necesitaré un eventEmitter ni recibir props:
+/*   @Input() contador!:number;
+  @Output() contadorChange = new EventEmitter<number>(); */ <- prehistoric code
+
+NOTA:fijate que en Angular siempre estoy bajo Typescript.Esto va a cambiar varias cosas,por ejemplo Store<T> siempre será de un tipo concreto.Contodo esto inyecto la clase/Observable en el hijo:
+
+constructor( 
+    private store: Store<AppState>,
+    ) {
+  this.store.select('contador').subscribe(contador => this.contador = contador);
+     }
+
+Puedo observar lo fácil que es para un componente suscribirse a una parte del estado(o a varias).En el siguiente video si que veremos como usar payloads en ese createReducer de NgRx.
+
+			VIDEO 33 CREANDO ACCIONES PARA MULTIPLICAR Y DIVIDIR
+
+En cuanto quiera definir una accion que lleva un payload tengo que usar un segundo argumento en el createAction llamado props<T>.
+
+export const multiplicar = createAction( "[Contador] Multiplicar",
+  props<{ numero: number }>());
+export const dividir = createAction( "[Contador] Dividir",
+  props<{ numero: number }>());
+
+En el reducer este argumento props viene como segundo argumento de la callback del metodo on(action.type,callback) del createReducer.Esto es fácil,asinto:
+on(incrementar, (state) => state +1),
+on(multiplicar, (state, {numero}) => state*numero <- ojo ,este argumento numero viene del props<T>, como era props<{numero:number}> pues la propiedad se llama numero.
+
+NOTA: también puedo no desestructurar las props:
+on(multiplicar, (state,props) => state*props.numero) 
+Depende de lo que quiera yo como desarrollador.
+
+Para llamar al dispatch de una acción cambia un poco debido a TS también:
+this.store.dispatch( actions.multiplicar( {numero:2}) <- ahora es un objeto como argumento.Quizas pude usar props<number>??.Sea como sea son sólo un par de cambios.
+
+			VIDEO 34 ACCION DE RESET DEL NIETO
+
+Es un ejercicio,simplemente implementar el reset.Yo lo haré con props para reforzar.
+NOTA:recuerda que he tenido que instalar dos librerias:
+ "@ngrx/store": "^13.0.2",
+ "@ngrx/store-devtools": "^13.0.2",  
+
+					SECCION 05 TODOS-APP 
+
+Vamos a crear la típica app de tareas,con un estado mucho más complejo que el contador anterior.También la desplegaremos en GitHubPages.Servirá para reforzar lo aprendido.
+Tocaremos temas como:
+
+1- Creación de componentes
+2- Modelos
+3- Acciones
+4- Reducers
+5- Estados
+6- Estado inicial
+7- Agregar tareas mediante acciones
+8- Payload
+9- Editar tareas
+10- Despliegues a GitHub y GitHub Pages
+
+Pero uno de los temas principales, es aclarar cómo romper la relación que tiene JavaScript con los objetos y que no sean procesados por referencia, si no que sean creados objetos nuevos. Y de esa manera siempre regresar nuevos estados.
+
+				VIDEO 39 INICIO PROYECTO TODOS-APP
 
 
