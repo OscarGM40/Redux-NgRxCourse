@@ -253,5 +253,54 @@ NOTA: Thunk middleware no es la única manera de orquestar acciones asíncronas 
 Puedo observar la gran idea que es instalar redux y usar su método createStore en vez de crear yo la clase.Pero aún falta ver como usar todo esto en una aplicación de Angular o React.
 
                     REDUX TOOLKIT 
-                    
+
+ReduxToolkit simplifica varias de las tareas de Redux,previene errores comunes,y hace más fácil implementar Redux.Está escrito alrededor de Redux y es la forma oficial recomendada de usar Redux.                    
+
 Documentación oficial redux Toolkit: https://redux.js.org/introduction/getting-started
+
+Instalar la libreria RDK(ReduxToolkit):
+npm install @reduxjs/toolkit
+npm install react-redux
+
+Aparte hay que instalar el adaptador para el framework.RDK simplifica la lógica y la creación del store(ya no se hará con createStore sino con configureStore:
+
+import { createSlice, configureStore } from '@reduxjs/toolkit'
+
+const counterSlice = createSlice({
+  name: 'counter',
+  initialState: {
+    value: 0
+  },
+  reducers: {
+    incremented: state => {
+      state.value += 1
+    },
+    decremented: state => {
+      state.value -= 1
+    }
+  }
+})
+IMPORTANTE: ReduxToolkit permite "mutar" el state.Realmente no muta,ya que RDK por detrás usa la librería Immer,que detecta ese código mutable y produce codigo no-mutable(luego puedo usar state.value++) o array.splice().
+
+export const { incremented, decremented } = counterSlice.actions
+
+const store = configureStore({
+  reducer: counterSlice.reducer
+})
+
+// Aún puedo suscribirme a todo el store(y usar select??<-confirmar)
+store.subscribe(() => console.log(store.getState()))
+
+// Aún puedo pasar objetos al dispatch
+store.dispatch(incremented())
+// {value: 1}
+	
+			RDK y ASYNC LOGIC
+
+REdux usa plugins en forma de middleware para permitir lógica asíncrona.
+1- El middleware asíncrono estandar es redux-think,también disponible para RDK.
+2- Las funciones thunk reciben el dispatch y getState como otra función en el return.
+3- NOrmalmente se crean acciones para starting,succedded o pending
+4- RDK tiene la API createAsyncThunk que trae las acciones pending/fulfilled/rejected autogeneradas.
+Investigar más sobre Redux y RDK.Hacer aplicaciones con RDK.
+

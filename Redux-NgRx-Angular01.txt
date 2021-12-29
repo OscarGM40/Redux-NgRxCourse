@@ -527,6 +527,7 @@ const _contadorReducer = createReducer(
   )
 
 /* ojo que usar la forma anterior implica tener que realizar este paso,pues es el retorno de la función anterior lo que se exporta al store */
+
 export function contadorReducer(state:number=initialState, action: Action) {
   return _contadorReducer(state, action);
 }
@@ -599,5 +600,102 @@ Tocaremos temas como:
 Pero uno de los temas principales, es aclarar cómo romper la relación que tiene JavaScript con los objetos y que no sean procesados por referencia, si no que sean creados objetos nuevos. Y de esa manera siempre regresar nuevos estados.
 
 				VIDEO 39 INICIO PROYECTO TODOS-APP
+
+Creo un nuevo proyecto con ng new <name> y lo renombro a 03-todoapp.Me traigo el contenido del index.html del repo(solo lo de dentro del <body>).
+
+Esto es el maquetado,para instalar los estilos hay que usar un modulo npm:
+npm install todomvc-app-css.
+Lógicamente falta referenciar estos estilos.Como siempre se hace en el angular.json(están en node_modules/todomvc-app-css/index.css)
+Este paso lo que hace es indicar a Angular que esos estilos van a formar parte del bundle final de la app.
+  "styles": [
+     "src/styles.css",
+     "./node_modules/todomvc-app-css/index.css" <- puede ser sin ./ también(sólo node_modules/todomvc...)
+      ],
+Ahora ya si puedo servirla con ng serve y deberían cargarse esos estilos.
+
+				VIDEO 40 CREANDO LOS COMPONENTES
+
+Siguiendo el video creo los componentes para el footer,todo-page,todo-add,todo-list,todo-item etc.Fijate como en cuanto crea un folder 'todo' le creamos su módulo.
+		VIDEO 41 SEGMENTAR LA TEMPLATE QUE TENEMOS EN MÚLTIPLES COMPONENTES
+
+Hora de segmentar todo el código que tenemos en los componentes que acabamos de crear.
+Recuerda que uno de los objetivos de los módulos es que todo esté encapsulado.Asi que para que en el app.component.html yo tenga visión sobre el selector <app-todo-page> tengo que exportar el componente TodoPage a través de su modulo todo.module.ts
+NOTA:fijate que no necesito exportar todos,solo el todoPage(que contiene a todos).
+NOTA:ya me proveen ellos las clases completed(text-decoration:line-through),editing(lo convierte a <input>) para que yo pueda usar sobre un <li>
+Realmente es sencillo segmentar la template que me proporciona Fernando.
+
+		VIDEO 42 INSTALAR NGRX,MODELO PARA TODOS, ACCIONES Y REDUCER
+
+Siempre debo crear un modelo de mis datos,en este caso creamos el directorio models dentro de todos,por semántica, dentro de ese folder creo el todo.model.ts:
+export class Todo {
+  public id: number;
+  public texto: string;
+  public completado: boolean;
+
+  constructor(texto: string) {
+    this.texto = texto.charAt(0).toUpperCase() + texto.slice(1);
+    this.completado = false;
+    this.id = new Date().getTime();
+  }
+}
+Cada vez que cree una instancia solo necesito el texto,pero me va a crear las tres propiedades,dos de ellas con los valores 'false'l y newDate().getTime().Perfecto.Hora de instalar ngRx:
+
+PASO UNO
+npm install @ngrx/store
+Y en el app.module.ts
+imports:[
+StoreModule.forRoot({todo:todoReducer}),] <-fijate que me pide el reducer
+
+PASO DOS
+Creo las acciones.Recuerda que el payload es props<T>() en ngrx:
+
+import { createAction, props } from "@ngrx/store";
+export const crearTodo = createAction(
+  '[TODO] Crea un todo',
+  props<{ texto: string }>());
+
+PASO TRES
+Creo el reducer más eficiente de ellos:
+
+import { Action, createReducer, on } from "@ngrx/store";
+import { Todo } from "../models/todo.model";
+import { crearTodo } from "./todo.actions";
+
+const initialState:Todo[]= [];
+
+const _todoReducer = createReducer(initialState,
+  on(crearTodo,(state,{texto}) => [...state,new Todo(texto)]),);
+
+export function todoReducer(state=initialState,action:Action){
+  return _todoReducer(state,action);
+}
+
+NOTA: Es buena idea crearse un snipet para esto,o simplemente copiar y pegar de otro proyecto.Fijate que aún queda instalar las reduxdevtools.
+
+				VIDEO 43 DEVTOOLS Y STATE DE LA APP
+
+Las devtools no tiene nada instalarlas:
+npm install @ngrx/store-devtools --legacy-peer-deps
+
+  StoreDevtoolsModule.instrument({
+      maxAge:25,
+      logOnly:environment.production
+    }),
+environment.production ya va a devolver false o true para logOnly:boolean.Fácil
+
+Bien,hay que definir el initialState de todo el Store.Normalmente se llama Appstate.Esto es para pasarselo al rootReducer:
+
+Podría ser algo como esto:
+export interface AppState {
+  todos: Todo[];
+  usuario:{},
+  loading: boolean;
+}
+
+pero dejaremos solo la propiedad todos:Todo[]. Ya veré donde usamos esto.
+
+						VIDEO 44 AGREGAR UN TODO
+
+
 
 
