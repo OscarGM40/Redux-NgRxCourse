@@ -696,6 +696,141 @@ pero dejaremos solo la propiedad todos:Todo[]. Ya veré donde usamos esto.
 
 						VIDEO 44 AGREGAR UN TODO
 
+Bie,vamos a usar formularios reactivos.Fijate que al usarlos,es decir,al importarl el módulo ReactiveFormsModule en el todo.module.ts tengo acceso a ellos.
+TEnemos un único <input>,ni siquiera tiene un <form> pero esto me da igual,no necesito que esté en un form.
 
+Perfectamente puedo definir un control y darle validaciones.LA clave es la clase FormControl(defaultValue,[validations]):
+
+txtInput:FormControl;
+constructor(){ this.txtInput = new FormControl('todo 01',[Validators.required)
+
+Ahora para asignar la configuración de este formControl a mi <input> tengo que usar la propiedad formControl(no confundir con formControlName,la cual requiere de un <form> con la propiedad [formGroup]
+
+<input [formControl]="txtInput"> <- como además va a enlazar a una propiedad de la clase debe llevar corchetes.
+
+IMPORTANTE:quiero rescatar sólo el valor cuando se pulse el Enter(pero con el foco en el input) asi que en vez de (keyup) va a ser (keyup.enter)="agregar()".De nuevo,es importante entender que no necesito crear una localRef porque estoy trabajando con formularios reactivos y ya puedo acceder al value desde la clase:
+
+<input [formControl]="txtInput" (keyup.enter)="agregar()">
+Habrá que controlar que no se dé al Enter con el campo vacio,esto deja el control en invalid con el required que pusimos.
+Inyectamos el store(ojo,siempre lleva un genérico)
+constructor( private store:Store<AppState>){}
+
+agregar(){
+  if(this.txtInput.invalid){return}
+  this.store.dispatch(crearTodo({texto:txtInput.value})
+  this.txtInput.setValue(''); 
+Por último limpio el campo con setVAlue(value).Genial.
+Resumen: Store<T> siempre trae un tipo al inyectarlo.Es un tipo general que declaramos en el app.state.ts con todo el state de la app(o con una parte sólo??).
+dispatch(actionName({prop:value}) para disparar una acción.La prop coincide con createAction('aaaa',props<{prop:type}>())
+Un new FormControl(defaultValue,[Validations]) me permite crear un control suelto.Lo enlazo con [FormControl]="name" en la template.
+(keyup.enter) rescata solo el evento keyup y además la tecla Enter,las demás las ignora.Y this.txtInput.setValue('') resetea el control(también puedo usar reset()Gran lección.Por ultimo fijate que no inicializamos FormBuilder pero aún asi necesitabamos el módulo al usar la class FormControl
+
+			VIDEO 45 DESPLEGAR NUESTRA LISTA DE TODOS
+
+Creamos tres o cuatro todos más y nos suscribimos en el todo-list.Fijate que en el this.store.select('todos') yo puedo saber ese nombre todos ya que será una propiedad de la interfaz AppState que define el estado general.
+Fijate que era export interface AppState { todos:todo[]}
+Siempre será una propiedad del T de Store<T>.
+NOTA: yo debería cancelar la suscripción al store,pero dado que es una SPA sin rutas no nos importa para algo tan pequeño.
+  <app-todo-item 
+    *ngFor="let todo of todos"
+    [todo]="todo"
+    >
+  </app-todo-item>
+Fijate que aunque usemos Redux en este map/for bucle tengo que mandar el todo para que lo tome el hijo.Esto no tiene nada que ver con redux.
+
+			VIDEO 46 TRABAJANDO CON LOS TODO-ITEMS
+
+ Rescatar cada todo es bien fácil con la directive @Input.
+NOTA:Angular permite varias formas de usar clases CSS de forma condicional:
+SINTAXIS ONE: [class.my_class]="step==='step1'"
+<li [class.completed]="todo.completado"> 
+SINTAXIS DOS:[ngClass]="{'class':step==='step1'}" <- ojo que es una llave
+<li [ngClass]="{'completed':todo.completado}"
+SINTAXIS THREE:multiples opciones:
+[ngClass]="{'my_class':step==='step1','other_class':step==='step2'}"
+Hay más pero con estas tres es suficiente.La primera forma es bien fácil.
+
+Bien,sigamos,en la label con el texto creamos un método para el dobleClick:
+ <label (dblclick)="editar()">{{todo.texto}}</label>
+
+A su vez hay que crear una referencia local al input que se genera y rescatarla con ViewChild:
+  editar(){
+    this.editando = true;
+    setTimeout(() => {
+      this.inputFisico.nativeElement.focus();
+    }, 1);
+  }
+Esto es para que hagamos focus al input al hacer dobleClick y entremos con el cursor(también podemos seleccionarlo entero con this.ref.nativeElement.select(),asi sólo hay que borrarlo con una pulsación.
+Y además esa propiedad boleana cambiará el estilo:
+ [class.editing]="editando">
+
+Por último también queremos perder esta clase editing al perder el foco.Realmente vamos incluso a guardar todo al perder el foco:
+  <input 
+    class="edit"
+    [formControl]="txtInput"
+    type="text"
+    #inputFisico
+    (blur)="terminarEdicion()"
+    >
+NOTA:puedo cambiar la rigurosidad del Store con runtimeChecks:{
+strictActionImmutability = false } para poder mutar el store,claro que no es lo ideal
+
+			VIDEO 47 TOGGLE ACTION COMPLETAR O DESMARCAR UN TODO
+
+Fijate que Fernando no creó FormControl porqué si.Recuerda que un formControl tiene la propiedad valueChanges que es un Observable.
+
+Pero en el subscribe vamos a disparar la accion toggleTodo asi que la creo:
+  export const toggleTodo = createAction(
+    '[TODO] Toggle todo',
+    props<{ id: number }>());
+
+En cuanto al reducer parece que la mejor opción sería:
+ on(toggleTodo,(state,{id}) => state.map(todo => {
+    if(todo.id === id){
+      return {
+        ...todo,
+        completado: !todo.completado
+      }
+    }
+    return todo;
+  })),
+
+En cuanto al dispatch ya todo está bien claro.Inyectar y disparar:
+  constructor(private store: Store<AppState>) { }
+
+  ngOnInit(): void {
+    this.checkCompletado = new FormControl(this.todo.completado);
+
+    this.checkCompletado.valueChanges.subscribe(valor => {
+      this.store.dispatch(toggleTodo({ id: this.todo.id }));
+      console.log(valor);
+    });
+
+NOTA: si por algún casual muto el state,cuando intente retroceder en las ReduxDevtools no podré hacerlo,ya que no es el mismo objeto,pues lo muté(siempre usar operador spread,etc...)
+
+IMPORTANTE: a la hora de mandar un payload a una acción yo bien podría haber pasado el Todo en vez de el id.Sin embargo esto es menos eficiente ya que tendrá que iterar primero por las propiedades del Todo y buscar el id.Lógicamente si se lo proporciono yo la operación será más rápida.
+
+					VIDEO 48 EDITAR UNA TAREA POR HACER
+
+Hagamos la acción de guardar trás quitar el blur.Fernando decide mandar el id y el texto:
+export const editarTodo = createAction(
+  '[TODO] Editar todo',
+  props<{ id: number;texto: string }>());
+La lógica del reducer es igual que la anterior,mapear y buscar por el id
+
+Además es buena idea mirar que el campo no esté vacio y que sea un texto diferente:
+  terminarEdicion() {
+    this.editando = false;
+    if (this.txtInput.invalid) {
+      return;
+    }
+    if (this.txtInput.value === this.todo.texto) {
+      return;
+    }
+    this.store.dispatch(actions.editarTodo({
+       id: this.todo.id,
+       texto: this.txtInput.value 
+      }));
+  }
 
 

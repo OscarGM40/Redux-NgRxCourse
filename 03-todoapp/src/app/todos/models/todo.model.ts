@@ -9,6 +9,6 @@ export class Todo {
   constructor(texto: string) {
     this.texto = texto.charAt(0).toUpperCase() + texto.slice(1);
     this.completado = false;
-    this.id = new Date().getTime();
+    this.id = Math.random();
   }
 }
