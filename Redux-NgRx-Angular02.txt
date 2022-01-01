@@ -1,0 +1,18 @@
+				SECCION 06 APLICACION DE INGRESOS Y EGRESOS 
+
+Vamos a hacer un panel administrativo,con login,graficas usando el store.En esta sección simplemente implementamos la template.
+
+Esta sección como lo mencioné anteriormente se enfoca más en crear el HTML para nuestra aplicación
+
+Los temas son:
+1- Crear el proyecto de Angular
+2- Manejo de la estructura de carpetas
+3- Implementar las rutas y las rutas hijas
+4- Diseñar las pantallas de la aplicación
+5- Convertir un template a una aplicación de Angular
+
+El objetivo primordial, es tener un cascaron que nos sirva para trabajar de una forma muy parecida a la realidad, a la cual nos enfrentaremos cuando implementemos este patrón en la empresa
+
+					VIDEO 62 INICIO DEL PROYECTO
+
+

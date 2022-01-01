@@ -1,10 +1,7 @@
-import { state } from "@angular/animations";
 import { Action, createReducer, on } from "@ngrx/store";
 import { Todo } from "../models/todo.model";
 
-import { crearTodo, editarTodo, toggleTodo } from "./todo.actions";
-
-
+import { borrarTodo, cleanCompleted, crearTodo, editarTodo, toggleAllTodos, toggleTodo } from "./todo.actions";
 
 const initialState: Todo[] = [
   new Todo('Salvar al mundo'),
@@ -13,7 +10,7 @@ const initialState: Todo[] = [
   new Todo('Vencer a Thanos'),
 ];
 
-const _todoReducer = createReducer(initialState,
+const _todoReducer = createReducer<Todo[],Action>(initialState,
   on(crearTodo, (state, { texto }) => [...state, new Todo(texto)]),
   on(toggleTodo, (state, { id }) => state.map(todo => {
     if (todo.id === id) {
@@ -24,15 +21,11 @@ const _todoReducer = createReducer(initialState,
     }
     return todo;
   })),
-  on(editarTodo, (state, { id, texto }) => state.map(todo => {
-    if (todo.id === id) {
-      return {
-        ...todo,
-        texto:texto
-      }
-    }
-    return todo;
-  })),
+  on(editarTodo, (state, { id, texto }) => state.map(todo => 
+     todo.id === id ? ({ ...todo, texto }) : todo  )),
+  on(borrarTodo, (state, { id }) => state.filter(todo => todo.id !== id)),
+  on(toggleAllTodos, (state,{completado}) => state.map(todo => ({ ...todo,completado } ))),
+  on(cleanCompleted, (state) => state.filter(todo => !todo.completado))
 
 );
 

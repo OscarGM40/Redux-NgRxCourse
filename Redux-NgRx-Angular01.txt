@@ -833,4 +833,202 @@ Además es buena idea mirar que el campo no esté vacio y que sea un texto difer
       }));
   }
 
+				VIDEO 49 BORRAR UNA TAREA DE LA LISTA
+
+Para borrar un todo creo la acción:
+export const borrarTodo = createAction(
+  '[TODO] Borrar todo',
+  props<{ id: number }>());
+
+Implanto la lógica en el reducer:
+ on(borrarTodo, (state, { id }) => state.filter(todo => todo.id !== id)),
+Fijate que filter es perfecto para borrar pues siempre regresa un nuevo arreglo
+
+Ya solo falta disparar la acción.Fijate no hace falta mandarle el id porque ya estoy en una instancia del todo.Es muy probable que suceda repetidamente en Angular:
+  deleteTodo() {
+    this.store.dispatch(actions.borrarTodo({ id: this.todo.id }));
+  }
+Y dado que estoy suscrito a cualquier cambio en el constructor del todo-list veré reflejado el cambio instantáneamente:
+this.store.select('todo').subscribe(todos => this.todos=todos
+
+			VIDEO 50 TOGGLEALL - MARCAR O DESMARCAR TODOS LOS TODOS
+
+Tenemos un pequeño checkbox junto al primer input.Queremos que al pulsarlo todos los todos aparezcan como completados y si se vuelve a pulsar aparezcan como no completados. 
+Bien fácil,creamos el evento onClick en ese input y con la ayuda de una propiedad en la clase disparamos una accion que cambie a true o false:
+
+ completado: boolean = false;
+  constructor(private store: Store<AppState>) { }
+  toggleAll(){
+    this.completado = !this.completado;
+    this.store.dispatch(actions.toggleAllTodos({completado: this.completado}));
+  }
+
+export const toggleAllTodos = createAction(
+  '[TODO] Toggle all todos',
+  props<{ completado: boolean }>());
+
+NOTA:desde ECMA6 recuerda que puedo devolver objetos asi: => ({})
+  on(toggleAllTodos, (state,{completado}) => state.map(todo => ({ ...todo,completado } ))),
+Y puedo agregar o modificar una propiedad a un objeto con el operador spread{...object,apellido} y despues juntarlo con {}.Perfecto
+
+Asi que al editar una propiedad puedo usar esta sintaxis,la cual deja bien claro lo que hace:
+  on(editarTodo, (state, { id, texto }) => state.map(todo => 
+     todo.id === id ? ({ ...todo, texto }) : todo  )),
+
+Por último fijate que esa propiedad de la clase era necesaria.
+
+			VIDEO 51 CREANDO UN SEGUNDO REDUCER - FILTROS
+
+Si bien podríamos manejar todo dentro del mismo reducer vamos a crear un segundo reducer para las acciones del footer.Asi veremos el filtro activo actual desde el estado y las devtools pudiendo darle seguimiento.
+
+Realmente un filtro va a ser un string(todos,activos,completados,...).No tiene mucho más.Asi que creamos la primera acción para establecer un filtro:
+
+/* dado que pasar de tipo string es muy genérico creamos una pequeña enum */
+export type filtrosValidos = 'todos' | 'completados' | 'pendientes';
+
+export const setFilter = createAction(
+  '[Filter] Set filter',
+  props<{ filter: filtrosValidos }>());
+
+En el filter.reducer.ts fijate que TS se volvió mas estricto:
+Si creo un initialState:T tengo que pasarle al createReducer<T,Action> ese mismo type.
+const _filterReducer = createReducer<filtrosValidos,Action>(initialState,
+  on(setFilter, (state:filtrosValidos, { filter }) => filter),
+)
+
+			VIDEO 52 COMBINAR DOS O MÁS REDUCERS EN EL APPSTATE
+
+Aún falta combinar estos dos reducers ya que sólo puede haber un rootReducer.Realmente puedo concatenar otro reducer aqui:
+ StoreModule.forRoot({todos:todoReducer}),
+dejandolo de esta forma:
+ StoreModule.forRoot({todos:todoReducer,filtros:filterReducer}),
+
+Pero se recomienda combinar los reducers en otro archivo y entregarle uno solo aqui.Para ello habiamos creado ya el app.reducer.ts,para combinar los reducers:
+
+export interface AppState {
+  todos:Todo[],
+  filtros: filtrosValidos <- será de este tipo un filtro,claro
+}
+Ahora para combinar hay que usar una función con retorno ActionReducerMap<T> siendo T mi estado general,que será Appstate:
+export const rootReducer:ActionReducerMap<AppState> = {
+  todos: todoReducer,
+  filtros:filterReducer,
+ ...
+Fernando la llamó appReducers(aunque sólo es uno),es indiferente,por último está claro que hay que ir al app.module y pasarle el rootReducer como único reducer
+StoreModule.forRoot(rootReducer),
+Ya no será un objeto,fijate,sino una referencia a la función.
+
+				VIDEO 53 CAMBIAR EL FILTRO
+
+Veamos como cambiar el filtro,de momento nos valdrá con cambiarlo al string que queremos al hacer click en los butttons del footer.ya implementaremos la lógica en los todos.
+NOTA:ya existe el pipe titlecase para capitalizar.NO obstante,al crear un pipe hay que importarlo en el modulo donde lo voy a usar.
+
+Simplemente creo las propiedades necesarias:
+  public filtroActual!: actions.filtrosValidos;
+  public filtros: actions.filtrosValidos[] = ['todos', 'completados', 'pendientes'];
+  public tareasPendientes: number = 0;
+
+  constructor(private store: Store<AppState>) {
+    this.store.subscribe(state => {
+      this.filtroActual = state.filtros;
+      this.tareasPendientes = state.todos.filter(todo => !todo.completado).length;
+    });
+  }
+
+  cambiarFiltro(filtro: actions.filtrosValidos) {
+    this.store.dispatch(actions.setFilter({ filter: filtro }));
+  }
+
+Y ya tengo todo listo para la template:
+ <ul class="filters">
+    <li *ngFor="let filtro of filtros" style="cursor:pointer;">
+      <a
+        (click)="cambiarFiltro(filtro)"
+        [class.selected]="filtroActual === filtro">
+          {{filtro | capitalizePipe}}</a>
+    </li>
+  </ul>
+De nuevo puedo observar el gran acierto que es usar redux en el front.
+
+		VIDEO 54 CONTEO DE TAREAS PENDIENTES
+
+Simplemente creamos una propiedad de tipo number y contamos la longitud del resultado de filtar los todos por no completado:
+
+this.store.subscribe( state => {
+  this.filtroActual = state.filtro;
+  this.tareasPendientes = state.todos.filter(todo => !todo.completado).lenght
+});
+Fijate como contamos el resultado del filter.Genial.En la template se pueden usar varias aproximaciones:
+  <span class="todo-count">
+    <strong>{{tareasPendientes}}</strong>
+    {{tareasPendientes !== 1 ? 'tareas pendientes' : 'tarea pendiente'}}
+  </span>
+
+				VIDEO 55 APLICAR EL FILTRO VISUALMENTE
+
+Vamos a filtrar el arreglo de todos[] en base a un Pipe.Genial.Recuerda que los pipes no mutan la data,simplemente la cambian visualmente y es justo lo que quiero.
+Recuerda que un pipe va a necesitar importarlo en algun otro modulo.
+El pipe es muy sencillo,pero fijate en los argumentos:
+
+ transform(todos: Todo[], filtro: filtrosValidos): Todo[] {
+    switch (filtro) {
+      case 'completados':
+        return todos.filter(todo => todo.completado);
+      case 'pendientes':
+        return todos.filter(todo => !todo.completado);
+      default:
+        return todos;
+    }
+En el *ngFor lo usaré,pero con un argumento sólo:
+ <app-todo-item 
+    *ngFor="let todo of todos | filtro:filtroActual"
+    [todo]="todo"
+    >
+Investigar porqué no le tengo que pasar dos argumentos y porqué en otros casos tuve que usar pipe:'argumento'.¿Es porqué es un string?
+
+NOTA:confirmo que el valor es inferido,es decir que un pipe que tenga transform(value:any,activo:boolean) se implementará sólo con un argumento.El value siempre es pasado y es el primero además.
+* Por ejemplo,este pipe va a usarse asi {{ "string cualquiera" | mayusculas:enMayusculas }} ¿Porqué?Porque el string pasa solo.
+@Pipe({
+   name:'mayusculas'
+})
+  transform( value:string, enMayusculas:boolean = true ):string {
+      return enMayusculas 
+         ? value.toLocaleUpperCase()
+         : value.toLocaleLowerCase()
+   }
+
+Con todo esto nuestro pipe recibiirá los todos como value en el primer arg y el filter como segundo.ESto es innegociable:
+transform(todos:Todo[],filter:filtrosValidos):Todo[]{}
+Un simple switch/case sobre el filter valdrá.Queda claro todo.
+
+			VIDEO 56 BORRAR TODOS LOS TODOS COMPLETADOS
+
+Realmente limpiar los completados es bastante sencillo.La acción no necesita argumentos:
+export const cleanCompleted = createAction(
+  '[TODO] Clean completed');
+El reducer es un simple filter que devuelve los no completados.
+  on(cleanCompleted, (state) => state.filter(todo => !todo.completado))
+
+Y disparo la acción en el (click)="limpiarCompletados()"
+
+  limpiarCompletados() {
+    this.store.dispatch(cleanCompleted());
+  }
+
+Por último fijate que puede que necesite mirar si el filtro actual ha cambiado o que haya tareas por completadas antes de disparar la acción de cambiarfiltro o limpiar tareas completadas.
+
+				VIDEO 57 DESPLIEGUE A GITHUB PAGES 
+
+NOTA: git pull es la combinación de git fetch y git merge
+Para desplegarlo hay que crear un repositorio remoto en GitHub.
+
+GitHubPages permite desplegar el repo como un sitio web,pero para eso debe ser un sitio web válido.Nuestro repo no lo es.
+
+Si voy a settings veré que puedo desplegar la master branch(lo cual no funcionará por lo anterior) o la carpeta docs de la master branch.Obviamente tengo que hacer el build y ponerlo en una carpeta docs en la raiz del repo(fijate que tiene que ser docs/index.html lo que sirva yo)
+
+Asi que hago el build y creo una carpeta docs a la que le muevo el contenido de build/folder/*
+Com ya tengo un index.html en la carpeta docs puedo ir a settings y elegir esa opción.
+
+NOTA:en Angular igual tengo que cambiar <base href="/" /> por <base href="" />
+segun se sirva la app en la raiz o en relativo.
 

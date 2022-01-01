@@ -39,6 +39,10 @@ export class TodoItemComponent implements OnInit {
     }, 1);
   }
 
+  deleteTodo() {
+    this.store.dispatch(actions.borrarTodo({ id: this.todo.id }));
+  }
+
   terminarEdicion() {
     this.editando = false;
     if (this.txtInput.invalid) {

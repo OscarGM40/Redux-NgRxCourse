@@ -9,6 +9,9 @@ import { TodoItemComponent } from './todo-item/todo-item.component';
 import { TodoListComponent } from './todo-list/todo-list.component';
 import { TodoPageComponent } from './todo-page/todo-page.component';
 
+import { CapitalizePipe } from '../pipes/capitalize.pipe';
+import { FiltroPipe } from '../pipes/filtro.pipe';
+
 
 
 @NgModule({
@@ -17,7 +20,9 @@ import { TodoPageComponent } from './todo-page/todo-page.component';
     TodoFooterComponent,
     TodoItemComponent,
     TodoListComponent,
-    TodoPageComponent
+    TodoPageComponent,
+    CapitalizePipe,
+    FiltroPipe
   ],
   imports: [
     CommonModule,
