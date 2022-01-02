@@ -15,4 +15,69 @@ El objetivo primordial, es tener un cascaron que nos sirva para trabajar de una 
 
 					VIDEO 62 INICIO DEL PROYECTO
 
+Fernando provee ya media aplicación.Copiar los assets y crear los componentes necesarios.Entre ellos las carpetas auth,shared,dashboar e ingreso-egreso.También copio los link:css.
+
+				VIDEO 64 DISEÑO DE NUESTRA APLICACIÓN
+
+Realmente Fernando proporcionó todo,simplemente es copiar el html a Angular.Fernando usó la versión 4.1.1 de bootstrap.Voy a usar la misma:
+npm i bootstrap@4.1.1
+Habrá que ir al angular.json como siempre.Recuerda que cuando modifico algo en el angular.json tengo que bajar el servidor y volver a compilar para que tome efecto ese cambio.
+
+					VIDEO 65 CONFIGURANDO LAS RUTAS
+
+Las rutas serán sencillas:
+const routes: Routes  = 
+[
+  { path: 'login', component: LoginComponent },
+  { path: 'register', component: RegisterComponent },
+  { path: '', component: DashboardComponent },
+  { path: '**', pathMatch: 'full', redirectTo: '' }
+
+];
+
+				VIDEO 66 CONFIGURAR RUTAS HIJAS
+
+Realmente hay varias formas de hacer esto.Fijate en ésta,que aún no he visto.Me creo un file con las rutas(sin clase ni decorador ni nada):
+
+En ese file declaro las rutas:
+export const dashboardRoutes:Routes =
+[
+  {path: '', component: EstadisticaComponent},
+  {path: 'ingreso-egreso', component: IngresoEgresoComponent},
+  {path: 'detalle', component: DetalleComponent},
+]
+En el app.module padre simplemente uso children con este arreglo de rutas.
+NOTA:recuerda que children lleva un arreglo de rutas por argumento y dashboardRoutes ya lo es:
+
+const routes: Routes  = 
+[
+  { path: 'login', component: LoginComponent },
+  { path: 'register', component: RegisterComponent },
+  { path: 'dashboard', component: DashboardComponent,children: dashboardRoutes },
+
+Al parecer hay varias formas,como la de usar module+routing.module.Investigar diferencias.
+
+			VIDEO 68 REALIZANDO UN BACKUP DE NUESTRA APLICACIÓN
+
+Hora de subirlo a GitHub y hacer una release-tag
+
+		SECCION 07 	AUTENTICACIÓN DE NUESTRA APP - LOGIN Y REGISTRO
+
+Vamos a gestionar la autenticación de nuestra aplicación con Firebase.
+Aquí vamos a cubrir temas interesantes como:
+
+1- Firebase
+2- AngularFire2
+3- AngularFireAuth
+4- Backend y autorizaciones
+5- Login
+6- Register
+7- Sweetalert
+8- Logout
+9- Grabar un documento en Firebase
+
+Esta sección esta enfocada en manejar la parte de autenticación de nuestros usuarios, y asegurarnos que cada usuario tenga su espacio independiente en Firebase, sin contar que al final, seguiremos contando con el poder de la comunicación en tiempo real por Sockets de Firebase
+
+					VIDEO 72 PANTALLA DE REGISTRO
+
 
