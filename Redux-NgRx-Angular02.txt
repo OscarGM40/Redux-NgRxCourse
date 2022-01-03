@@ -80,4 +80,145 @@ Esta sección esta enfocada en manejar la parte de autenticación de nuestros us
 
 					VIDEO 72 PANTALLA DE REGISTRO
 
+Voy al register.component y creo otro campo.Usaremos formularios reactivos.
+Enlazo el formulario,etc...
+Fijate que bonito queda mostrar un bisé o alguna cosa cuando el campo cumple con lo requerido.Debo memorizar esto,pues lo usaré cual prehistoric:
+
+Voy por cada control mostrando el icono segun validación de dicho control
+      <span class="input-group-text"
+          *ngIf="registerForm.get('password')!.valid">
+         <i class="fa fa-check-circle"></i>
+      </span>
+
+				VIDEO 73-74 ENLAZAR FIREBASE CON ANGULAR-ANGULARFIRE
+
+Crearemos un nuevo proyecto en Firebase.Habilito en auth la autenticación por correo y constraseña custom.Usaremos una base de datos normal(Firestore)
+Le pongo de reglas allow read,write de momento,pero lo cambiaremos a if auth
+
+NOTA:mandar un correo a Firebase diciendo que estoy aprendiendo a ver si me aumentan el límite | investigar sobre esto
+
+Una vez creado el proyecto de Firebase hay que enlazarlo con la librería oficial de Angular para Firebase:
+Repo: https://github.com/angular/angularfire
+
+NOTA: npm también tiene la libreria
+Si voy a usar el repo:
+ng add @angular/fire
+o bien(en realidad ng add usará el de npm,es tonteria usar ng add)
+npm i @angular/fire
+
+PASO UNO settear los environment files con la configuración de enlace
+En Angular cambia un poco,ya que hay que agregar a ambos environments(a los dos) la configuración que me da Firebase para enlazar la app con el proyecto:
+
+en ambos environment.ts =>
+export const environment = {
+  production: false,
+  firebase: {
+      apiKey: "xxxxx",
+      authDomain: "ingreso-egreso-ngrxapp.firebaseapp.com",
+      projectId: "ingreso-egreso-ngrxapp",
+      storageBucket: "ingreso-egreso-ngrxapp.appspot.com",
+      messagingSenderId: "1070037050213",
+      appId: "x"
+    }
+};
+
+PASO DOS en el AppModule me traigo el AngularFireModule
+/* AngularFire */
+import { AngularFireModule } from '@angular/fire/compat';
+import { environment } from 'src/environments/environment';
+Y lo importo al proyecto con la config anterior
+imports: [
+    AngularFireModule.initializeApp(environment.firebase)
+  ],
+
+PASO TRES Configurar Extras(Firestore,Auth,Storage,...)
+import { AngularFireModule } from '@angular/fire/compat';
+import { AngularFireAnalyticsModule } from '@angular/fire/compat/analytics';
+import { AngularFirestoreModule } from '@angular/fire/compat/firestore';
+import { environment } from '../environments/environment';
+
+@NgModule({
+  imports: [
+    BrowserModule,
+    AngularFireModule.initializeApp(environment.firebase),
+    AngularFireAnalyticsModule,
+    AngularFirestoreModule
+  ],)
+
+PASO CUATRO para usar firestore inyectar AngularFirestore:
+export class AppComponent {
+  constructor(firestore: AngularFirestore) {
+  }
+PASO CINCO ENLAZARSE A UNA COLECCION DE FIRESTORE:puedo suscribirme a los cambios en una coleccion de Firestore:
+
+ items: Observable<any[]>;
+ constructor(firestore: AngularFirestore) {
+    this.items = firestore.collection('items').valueChanges();
+  }
+
+ <li class="text" *ngFor="let item of items | async">
+    {{item.name}}
+  </li>
+
+PASO SEIS: para usar la AUth de Firebase hay que importar el modulo y despues inyectar el servicio:
+
+import { AngularFireAuthModule} from '@angular/fire/auth' 
+o bien => import { AngularFireAuthModule } from '@angular/fire/compat/auth';
+
+RESUMEN:al final he tenido que usar todas las versiones con compatibilidad:
+/* AngularFire */
+import { AngularFireModule } from '@angular/fire/compat';
+import { AngularFirestoreModule } from "@angular/fire/compat/firestore";
+import { AngularFireAuthModule } from '@angular/fire/compat/auth';
+import { environment } from 'src/environments/environment';
+
+imports:[
+  /* FORMA ANTERIOR */
+    AngularFireModule.initializeApp(environment.firebase),
+    AngularFirestoreModule,
+    AngularFireAuthModule, ]
+
+Puedo observar que despues cada servicio de Firebase tiene una clase para inyectar.Empecemos con el registro de un usuario.
+
+				VIDEO 75 CREANDO NUESTRO PRIMER USUARIO
+
+Creamos un servicio para registrar usuarios.Como voy a usar Firebase Auth inyecto la clase destinada para ello(con compatibilidad):
+
+import { AngularFireAuth } from '@angular/fire/compat/auth';
+
+Una vez importada esa clase simplemente uso su instancia singleton
+  crearUsuario(nombre:string, email:string, password:string){
+ return this.afAuth.createUserWithEmailAndPassword(email, password);
+
+Lógicamente al crear usaré createUserWithEmailAndPassword,al logearme será signInWithEmailAndPassword,etc...
+
+NOTA: en Firebase al crear un Usuario también se le autentica inmediatamente,luego se me proporcionará un token y un uid único.
+Por último redirecciono al dashboard en un registro exitoso:
+ this.router.navigate(['/dashboard']);
+
+				VIDEO 76 LOGIN DE NUESTRA APLICACIÓN
+
+Creo un nuevo método en el servicio authService:
+  loginUsuario(email:string, password:string){
+    return this.afAuth.signInWithEmailAndPassword(email, password);
+  }
+Y lo llamo en el submit.Poco más,asinto:
+
+  loginUsuario(){
+    if (this.loginForm.invalid) { return; }
+
+    const { email, password } = this.loginForm.value;
+    this.authService.loginUsuario(email, password)
+      .then((cred) => {
+        console.log(cred.user?.uid,'login');
+        this.router.navigate(['/dashboard']);
+      })
+      .catch(err => console.log(err));
+  }
+NOTA: investigar diferencias entre iniciar una propiedad en la definición,el constructor o el ciclo de vida onInit.
+
+					VIDEO 77 SWAL PARA LOS ERRORES
+
+
+
 
