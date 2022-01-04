@@ -219,6 +219,99 @@ NOTA: investigar diferencias entre iniciar una propiedad en la definición,el co
 
 					VIDEO 77 SWAL PARA LOS ERRORES
 
+NOTA:sería buena idea cambiar el css del formulario del login y el register.En cuanto a la libreria simplemente la instalo y abro un Swal en los catch.
 
+IMPORTANTE:puedo abrir un Swal con un loading cuando quiera,ya lo cerraré despues con Swal.close,que cierra la instancia que esté abierta.Genial
+
+  crearUsuario(){
+    if(this.registerForm.invalid){ return;
+
+    Swal.fire({   <- LA ABRO AQUI
+      title: 'Espere,por favor...',
+      didOpen: () => { Swal.showLoading() } }) 
+
+    const {nombre,email,password} = this.registerForm.value;
+
+    this.authService.crearUsuario( nombre, email, password)
+       .then(credenciales =>{
+        //  console.log(credenciales.user?.uid,'registro');
+      Swal.close();  - Y LA CIERRO AQUI
+
+Perfecto.Es algo que no sabía y es muy útil saberlo.Puedo ver aqui lo que hace:
+The promise originally returned by Swal.fire() will be resolved with this value. If no object is given, the promise is resolved with an empty SweetAlertResult object.
+Closes the currently open SweetAlert2 popup programmatically.
+Sin más Swal.close() cierra a Swal.fire()
+
+					VIDEO 78 LOGOUT - CERRAR SESIÓN
+
+El logout en Firebase no puede ser más sencillo.En el servicio usaré su instancia inyectado de AngularFireAuth:
+
+  logout(){ return this.afAuth.signOut(); }
+
+IMPORTANTE:a estas alturas fijate la buena idea que es dejar la autenticación a terceros.No sólo te deja tiempo,sino que seguro que está testeada y es muy confiable.
+LLamo a ese servicio en el botón corrrespondiente y además redirecciono.Demasiado fácil para ser cierto,asinto.
+IMPORTANTE: dado que this.afAuth.signOut():Promise devuelve una promesa y semánticamente hay que llamar al servicio y despues redireccionar mejor uso .then():
+
+  logout() {
+    this.authService.logout().then( () => this.router.navigate(['/login']));
+  }
+
+		VIDEO 79 OBTENER INFORMACIÓN DEL USUARIO ACTUAL DESDE FIREBASE
+
+Queremos obtener toda la información respecto al usuario(cuando se conecta,cuando se desconecta,...)Para esto tengo el método authState:Observable<firebase.User> que es como el valueChanges de los forms,me permite suscribirme.
+
+Devuelve un Observable con un firebase.User que es lo que es cada usuario para ellos.Asi que simplemente creo un método que inicie la suscripción:
+
+  initAuthListener(){
+    this.afAuth.authState.subscribe( 
+      (fbUser) => {
+      console.log(fbUser);
+    });
+  }
+
+El punto donde suscribirme realmente cuanto más alto mejor,asi que lo haremos en el AppComponent:
+
+export class AppComponent {
+  constructor(private authService: AuthService) { 
+    this.authService.initAuthListener();
+  }
+
+NOTA: dado que Angular crea el servicio en Singleton no creará más de una suscripción,siendo prácticamente innecesario el unsubscribe.
+
+				VIDEO 80 GUARD - PROTECCIÓN DE RUTAS
+
+Vamos a proteger el dashboard con un guard.Es muy sencillo,en la declaración de la ruta llamo al arreglo de guards con canActivate,canLoad,etc.Se llamarán justo como los métodos que implemente:
+
+  { path: 'dashboard', 
+    component: DashboardComponent,
+    children: dashboardRoutes,
+    canActivate: [AuthGuard]
+   },
+Dado que implementé el canActivate debo llamar al canActivate en el arreglo de rutas.
+Lamentablemente Firebase no proporciona una propiedad isLogged,pero perfectamente podemos usar la propiedad con la que me puedo suscribir a los cambios y preguntar si el firebase.User es null,que a grosso modo es decir si estoy logeado o no:
+
+ isAuth(){
+    return this.afAuth.authState.pipe(
+      map(fbUser => fbUser != null)
+    );
+  }
+Fijate como mapeo un <User,boolean>,devolviendo justo lo que necesita el Guard(y como no se usa !== sino comparación simple.Mucho nivel hay por aqui.
+IMPORTANTE: fijate que el Guard ya lanza él la suscripción.Genial.Desde luego Angular es super robusto,fiable,es Dios -_-.
+
+  canActivate(): Observable<boolean> | boolean {
+    return this.authService.isAuth();
+  }
+Ya se suscribe él y dispara el método en el acceso a la ruta.Increíble,que perfección,que satisfacción,que prehistoric son los demás,...
+
+Y ya que estamos si el usuario no está autenticado le sacamos al login en vez de dejarle en esa pantalla en blanco:
+  
+canActivate(): Observable<boolean> | boolean {
+    return this.authService.isAuth().pipe(
+      tap( auth => { < auth es un firebase.User,si es null para el login
+        if (!auth) { this.router.navigate(['/login']); }
+      }));
+  }
+
+		VIDEO 81 CREAR DOCUMENTO EN  FIREBASE POR CADA USUARIO 
 
 
