@@ -314,4 +314,68 @@ canActivate(): Observable<boolean> | boolean {
 
 		VIDEO 81 CREAR DOCUMENTO EN  FIREBASE POR CADA USUARIO 
 
+Vamos a crear un documento por cada usuario con su uid como identificador(dado que es único).Empezamos creando un modelo para un Usuario,usaremos la forma corta:
+
+export class Usuario {
+  constructor(
+    public uid: string,
+    public nombre: string,
+    public email: string,
+  ){} 
+
+Recuerda que cada feature que use de Firebase tengo que inyectarla.Si bien he intectado AngularFireAuth ahora voy a usar Firestore luego tengo que inyectar su clase para acceder a la base de datos:
+
+  constructor( 
+      public afAuth: AngularFireAuth,
+      private firestore:AngularFirestore,
+
+El punto para crear el usuario lógicamente es en el registro,luego en el servicio que crea un usuario en Firebase,al ser una promesa,lo siguiente que hago es guardar el usuario:
+
+  crearUsuario(nombre:string, email:string, password:string){
+    return this.afAuth.createUserWithEmailAndPassword(email, password)
+    .then( fbUser => {
+      const { uid, email} = fbUser.user!;
+      const newUser = new Usuario(uid, nombre,email!);
+      return this.firestore.collection('usuarios').doc(`${uid}`).set({...newUser})
+    });
+El nombre lo sacamos del campo,el uid y email del firebase.User.Puedo ver como usar su autenticación es realmente sencillo.
+
+			SECCION 08 IMPLEMENTANDO REDUX EN LA AUTENTICACIÓN
+
+Esta sección tiene por objetivo enseñar y repasar cosas como:
+1- Implementar patrón Redux y NgRx
+2- Crearemos nuestro primer reducer y acciones para controlar el estado de la interfaz de usuario
+3- ActionReducerMap
+4- Dispatch de acciones de UI
+5- Acciones del Auth
+6- Reducer del Auth
+
+Implementaremos las devtools y ya comenzaremos a trabajar con el patrón REDUX
+
+					VIDEO 87 UIREDUCER-UISTATE
+
+Como siempre instalo los dos módulos para Angular:
+npm i @ngrx/store @ngrx/store-devtools --legacy-peer-deps
+
+Configuro el app.module:
+StoreModule.forRoot(rootReducer),
+StoreDevtoolsModule.instrument({ maxAge: 25, logOnly: environment.production, }), 
+Configuro el app.rootReducer que Fernando llama app.reducer:
+import { ActionReducerMap } from '@ngrx/store';
+import * as UI from './ngrx/ui.reducer';
+
+export interface AppState {
+   ui: UI.InitialState; 
+}
+
+export const rootReducer: ActionReducerMap<AppState> = {
+   ui: UI.uiReducer,
+}
+
+Y creo alguna acción y el reducer para este pedazo del store.Fácil.Ya debería poder ver esta propiedad ui del store en las DevTools.
+
+			VIDEO 89 DISPARAR ACCIONES ISLOADING -ISNOTLOADING
+
+
+
 

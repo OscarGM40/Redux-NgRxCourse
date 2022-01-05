@@ -24,8 +24,10 @@ import { AngularFirestoreModule } from "@angular/fire/compat/firestore";
 import { AngularFireAuthModule } from '@angular/fire/compat/auth';
 import { environment } from 'src/environments/environment';
 
-// import { provideFirebaseApp, getApp, initializeApp } from '@angular/fire/app';
-// import { getFirestore, provideFirestore } from '@angular/fire/firestore';
+/* NgRx */
+import { StoreModule } from '@ngrx/store';
+import { StoreDevtoolsModule } from '@ngrx/store-devtools';
+import { rootReducer } from './app.rootReducer';
 
 @NgModule({
   declarations: [
@@ -49,9 +51,12 @@ import { environment } from 'src/environments/environment';
     AngularFireModule.initializeApp(environment.firebase),
     AngularFirestoreModule,
     AngularFireAuthModule,
-    /* FORMA NUEVA */
-    // provideFirebaseApp(() => initializeApp(environment.firebase),
-    // provideFirestore( () => getFirestore())),
+    /* FORMA NGRX */
+    StoreModule.forRoot(rootReducer),
+    StoreDevtoolsModule.instrument({
+      maxAge: 25, 
+      logOnly: environment.production, 
+    }),
   ],
   providers: [],
   bootstrap: [AppComponent]
