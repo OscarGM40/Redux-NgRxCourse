@@ -1,27 +1,45 @@
 import { Injectable } from '@angular/core';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
+import { Store } from '@ngrx/store';
+import { Subscription } from 'rxjs';
 // import firebase from 'firebase/compat/app';
 import { map } from 'rxjs/operators';
+import { AppState } from '../app.rootReducer';
 import { Usuario } from '../models/usuario.model';
+import * as auth from '../ngrx/auth.actions';
+
+
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
 
+  userSubscription!: Subscription;
+  
   constructor( 
       public afAuth: AngularFireAuth,
       private firestore:AngularFirestore,
-      ) { }
+      private store:Store<AppState>
+      ) {  }
 
   initAuthListener(){
-    return this.afAuth.authState.subscribe({
-      next: (fbUser) => {
-      /*   console.log(fbUser?.displayName);
-        console.log(fbUser?.email);
-        console.log(fbUser?.uid); */
-      },
-      error: (err) => console.log('Error en la suscripcion',err),
-      complete: () => console.log('Suscripcion completada')
-    });
+    this.afAuth.authState.subscribe( (fbUser) =>{
+        if(fbUser){
+
+          this.userSubscription = this.firestore.collection('usuarios').doc(`${fbUser.uid}`).valueChanges()
+            .subscribe( (firestoreUser:any) => {
+            
+            const { nombre, email, uid } = firestoreUser;
+            const user = new Usuario(uid, nombre, email);
+            this.store.dispatch(auth.setUser({user}));
+
+          });
+        } else {
+          this.userSubscription && this.userSubscription.unsubscribe();
+          this.store.dispatch(auth.unsetUser());
+        }
+      }
+    );
   }
 
   crearUsuario(nombre:string, email:string, password:string){
@@ -39,6 +57,7 @@ export class AuthService {
   }
 
   logout(){
+    // this.store.dispatch(auth.unsetUser());
     return this.afAuth.signOut();
   }
 

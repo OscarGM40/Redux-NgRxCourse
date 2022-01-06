@@ -376,6 +376,145 @@ Y creo alguna acción y el reducer para este pedazo del store.Fácil.Ya debería
 
 			VIDEO 89 DISPARAR ACCIONES ISLOADING -ISNOTLOADING
 
+VAmos a empezar por el login.Me traigo el store y me suscribo al ui:
+   
+ private store: Store<AppState>) { 
+    this.store.select('ui').subscribe(ui => {
+      this.isLoading = ui.isLoading; }); }
+
+Sin embargo,dejarlo asi presenta el problema que cada vez que entre al login me va a crear una suscripción nueva.Para evitar esto tengo que crearme una propiedad de tipo Suscription,almacenar la suscripción y cancelarla en el ciclo OnDestroy.
+
+  uiSubscription!: Subscription;
+
+ this.uiSubscription = this.store.select('ui').subscribe(ui => {
+      console.log('suscripcion creada')
+      this.isLoading = ui.isLoading;
+    });
+
+  ngOnDestroy(): void {
+    this.uiSubscription.unsubscribe();
+  }
+Hago lo mismo para el registro.
+
+					VIDEO 90 UTILIZANDO EL STORE -IS LOADING
+
+Podemos hacer algo menos intrusivo que ese pedazo de modal.Por ejemplo cambiar el texto del botón y mostrar un pequeño spinner.
+Esto es terriblemente sencillo ahora,ya que tengo la propiedad de clase boleana para usarla:
+
+    <div class="form-group">
+           <button
+                *ngIf="!isLoading"
+                type="submit"
+                [disabled]="!loginForm.valid"
+                class="btn btn-primary submit-btn btn-block">
+                Login
+              </button>
+              <button
+                *ngIf="isLoading"
+                type="button"
+                [disabled]="true"
+                class="btn btn-primary submit-btn btn-block">
+                <i class="fa fa-spin fa-sync"></i>
+                Espere...
+              </button>
+            </div>
+
+Puedo ver que queda más discreto.Fijate que siempre estará desactivado y que ya no es necesario que sea de tipo submit.
+
+			VIDEO 91 AUTH.ACTIONS AUTH.REDUCER	Y NUEVO AUTHSTATE
+
+Vamos a crear otro partialStore,lo llamaremos auth.Habrá que crear sus archivos de acciones y reducer asi como retocar el rootReducer.
+
+En cuanto a acciones vamos a usar de momento dos,una para establecer un usuario y otra para quitarlo:
+
+export const setUser = createAction('[Auth] setUser',
+props<{user: Usuario}>());
+export const unsetUser = createAction('[Auth] unsetUser');
+
+Creo la lógica para el reducer:
+
+const _authReducer = createReducer(initialState,
+    on(setUser, (state,{user}) => ({ ...state, user: {...user} })),
+    on(unsetUser, (state) => ({ ...state, user: null })),
+
+);
+Fijate que romper toda referencia puede parecer paranoico pero sin duda será efectivo.
+Falta combinar los reducers,y anterior a esto crear su tipo,pues la función es ActionReducerMap<T>:
+export interface AppState {
+   ui: UI.InitialState; 
+   auth: Auth.authInitialState;
+}
+
+export const rootReducer: ActionReducerMap<AppState> = {
+   ui: UI.uiReducer,
+   auth: Auth.authReducer
+}
+
+Ahora falta ver donde llamamos al setUser y al unSetUser y para ello podemos usar los Observables que me deja usar Firebase.
+
+Primero recuerda que FirebaseAuth me deja suscribirme a los cambios en su módulo Auth,esto es fundamental entenderlo:
+return this.afAuth.authState.subscribe({ <- afAuth me deja suscribirme
+  next: (fbUser) => { 
+    if(fbUser){
+      this.firestore.collection('usuarios').doc(`${fbUser.uid}`).valueChanges()
+        .subscribe( (firestoreUser) => {
+          console.log(firestoreUser);
+
+Despues de igual forma me puedo suscribir a los cambios en un documento(fijate que todo esto es muy potente).
+
+ initAuthListener(){
+    this.afAuth.authState.subscribe( (fbUser) =>{
+        if(fbUser){
+
+          this.userSubscription = this.firestore.collection('usuarios').doc(`${fbUser.uid}`).valueChanges()
+            .subscribe( (firestoreUser:any) => {
+            
+            const { nombre, email, uid } = firestoreUser;
+            const user = new Usuario(uid, nombre, email);
+            this.store.dispatch(auth.setUser({user}));
+
+          });
+        } else {
+          this.userSubscription.unsubscribe();
+          this.store.dispatch(auth.unsetUser());
+        }
+      }
+    );
+  }
+
+Al final quedó asi, y tuvimos que cancelar la suscripcíon ya que Firestore trabaja con sockets y hay que ser muy precisos.
+No es buena práctica tener una colección por cada usuario, mejor tener una colección llamada usuarios y los usuarios estén como documentos.Fijate que esto lo hace Fernando y ya se veía que era un pequeño error.
+Es un buen momento para hacer un bakcup y una release ya que está implementada la autenticación al 100%.
+					
+					SECCION 09 MODULO DE INGRESOS Y EGRESOS
+
+Aquí tendremos por objetivo construir todo lo que viene después de una autenticación válida, cosas como:
+
+1- Crear modelo de Ingresos y Egresos
+2- Pantallas de captura de datos
+3- Servicio de Ingreso Egreso
+4- Loadings
+5- Acciones y Reducer de Ingresos y Egresos
+6- Leer de Firebase
+7- Grabar a Firebase
+8- Gráficas dinámicas
+9- Y otras cosas
+
+Primero será crear un Modelo para un IngresoEgreso:
+
+export class IngresoEgreso {
+  
+  constructor(
+    public description: string,
+    public monto: number,
+    public tipo: string,
+    public uid?: string,
+    public fecha?: Date
+  ) {}
+  
+}
+
+		VIDEO 98 PANTALLA PARA CAPTURAR INGRESOS Y EGRESOS
 
 
-
+Esta sección es el corazón de nuestra aplicación, es con lo que nuestro usuario va a trabajar.
