@@ -26,9 +26,9 @@ export class AuthService {
     this.afAuth.authState.subscribe( (fbUser) =>{
         if(fbUser){
 
-          this.userSubscription = this.firestore.collection('usuarios').doc(`${fbUser.uid}`).valueChanges()
+          this.userSubscription = this.firestore.doc(`${fbUser.uid}/usuario`).valueChanges()
             .subscribe( (firestoreUser:any) => {
-            
+            // console.log(firestoreUser);
             const { nombre, email, uid } = firestoreUser;
             const user = new Usuario(uid, nombre, email);
             this.store.dispatch(auth.setUser({user}));
@@ -48,7 +48,7 @@ export class AuthService {
       const { uid, email} = fbUser.user!;
       const newUser = new Usuario(uid, nombre,email!);
 
-      return this.firestore.collection('usuarios').doc(`${uid}`).set({...newUser})
+      return this.firestore.doc(`${uid}/usuario`).set({...newUser})
     });
   }
 

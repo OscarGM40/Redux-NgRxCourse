@@ -516,5 +516,141 @@ export class IngresoEgreso {
 
 		VIDEO 98 PANTALLA PARA CAPTURAR INGRESOS Y EGRESOS
 
-
 Esta sección es el corazón de nuestra aplicación, es con lo que nuestro usuario va a trabajar.
+NOTA:siempre que se te olvide si es [formGroup] o [formGroupName] recuerda que es igual que el tipo.ylos formularios son de tipo formGroup
+Dicho esto el formulario no tiene nada simplemente lo enlazo,eso sí,fijate como vamos a hacer toggle sobre un botón ingreso/egreso:
+   <button (click)="tipo='egreso'"
+               *ngIf="tipo === 'ingreso'"
+               type="button"
+               class="btn btn-primary btn-block">
+               Ingreso
+              </button>
+              <button (click)="tipo='ingreso'"
+              *ngIf="tipo === 'egreso'"
+               type="button"
+               class="btn btn-warning btn-block">
+               Egreso
+            </button> 
+
+				VIDEO 99 SERVICIO PARA INGRESOS Y EGRESOS
+
+Realmente no tiene mucha ciencia,salvo elegir la estructura correcta a guardar.De momento seguiré la de Fernando.
+
+  crearIngresoEgreso(ingresoEgreso: IngresoEgreso) {
+    this.firestore.doc(`${this._user!.uid}/ingresos-egresos`)
+      .collection('items')
+      .add({ ...ingresoEgreso })
+      .then((ref) => {console.log('exito',ref)})
+      .catch((error) => {console.log('error',error)});
+  }
+
+Ya lógicamente sólo falta disparar este servicio.Importante,fijate como crear un modelo ha sido fundamental:
+
+  submitForm() {
+    if (this.ingresoForm.invalid) { return; }
+
+    const { descripcion,monto } = this.ingresoForm.value;
+    const ingresoEgreso = new IngresoEgreso(descripcion, monto, this.tipo);
+
+    this.ingresoEgresoService.crearIngresoEgreso(ingresoEgreso);
+  }
+
+Fijate que al final voy a cambiar esa promesa que resolvía en el servicio con return para resolverla más tarde:
+  this.xxxx.add().then().catch() la resuelve alli
+
+Siempre es mejor usar return en los servicios y tratar en su llamada los errores.En cuanto haga el return Promise ya tengo que usar .then en la llamada a ese método(es decir un método que  retorne una Promise debe ser llamado con .then,pero si retorna una Promise.then ya el método resuelve todo.
+
+   this.ingresoEgresoService.crearIngresoEgreso(ingresoEgreso)
+      .then(() => {
+        Swal.fire('Registro Creado', descripcion, 'success');
+        this.ingresoForm.reset();
+      })
+      .catch(err => {
+        Swal.fire('Error', err.message, 'error');
+      });
+
+NOTA:para el error can't resolve all parameters:
+"emitDecoratorMetadata": true En el tsconfig.json
+
+				VIDEO 100 OPTIMIZACIONES DE LOADING
+
+Es una tarea,simplemente implementar el spinner en base al isLoading de nuestro store.Fijate que es buena idea ese store sólo para ese boleano,que tal vez podría llevar alguna propiedad más.
+
+			VIDEO 101 ACCIONES Y REDUCER PARA INGRESOS Y EGRESOS
+
+De momento empezamos creando estas dos acciones:
+import { createAction, props } from '@ngrx/store';
+import { IngresoEgreso } from '../models/ingreso-egreso.model';
+
+export const setItems = createAction('[IngresoEgreso] setItems',props<{items:IngresoEgreso[]}>());
+
+export const unSetItems = createAction('[IngresoEgreso] unsetItems');
+
+En cuanto al reducer también será algo sencillo de momento:
+
+const _ingresoEgresoReducer = createReducer(initialState,
+    on(setItems, (state, { items } ) => ({ ...state, items: [...items] })),
+    on(unSetItems, state => ({ ...state, items: [] })),
+);
+
+Combino los reducers y listo. 
+
+				VIDEO 102 CARGAR ITEMS DESDE FIREBASE
+
+Empecemos al menos por imprimir la información por consola.
+IMPORTANTE: fijate que hay un punto en que aún se está pidiendo la información a Firebase al suscribirme a auth y el user aún es null:
+
+authInitialState :null
+authInitialState {user: {…}}
+
+  this.authSubscription = this.store.select('auth')
+      .subscribe(authInitialState => {
+        console.log('authInitialState', authInitialState);
+        this._user = authInitialState.user;
+      });
+
+Esto es fácil de resolver,puedo usar el operador filter,el cual sólo va a dejar pasar cuando su Predicate sea true:
+
+  this.authSubscription = this.store.select('auth')
+   .pipe(filter(authInitialState => authInitialState.user != null)
+      .subscribe(authInitialState => {
+        console.log('authInitialState', authInitialState);
+        this._user = authInitialState.user;
+      });
+
+authInitialState {user: {…}}
+Aqui se nota la proacidad de Fernando -_-
+
+Con todo esto llamo a este servicio para ver los cambios:
+  
+formaFernando(){
+   this.firestore
+     .doc(`${this._user?.uid}/ingresos-egresos`)
+      .collection('items')
+     .valueChanges().subscribe(console.log);
+  }
+Aún falta poder usar el uid de ese item.
+
+				VIDEO 103 OBTENER EL UID DE UN ITEM
+
+Realmente al suscribirnos al valueChanges no conseguimos ver el uid,ya que entramos hasta el documento.Para poder ver más información sobre un item de una coleccíon(en vez de sólo su contenido) hay que consultar la snapshot creada suscribiendome al snapshotChanges().Realmente Firebase es muy buen servicio.
+
+  formaFernando(){
+   this.firestore
+     .doc(`${this._user?.uid}/ingresos-egresos`)
+      .collection('items')
+      //  .valueChanges()
+      .snapshotChanges()
+      .subscribe(console.log);
+  }
+  
+Veré que en cada snapshot tengo la propiedad payload y dentro de cada payload tengo la propiedad doc(que es el documento).Dentro de ese doc ya puedo ver el id,luego tengo que entrar a payload.doc.id.
+También veré a través del prototype que hay una función llamada data.
+Si hago referencia a esta función veré toda la data que veia antes a través del valueChanges,es decir el contenido.Con todo esto,necesitamos el id y la data:
+
+NOTA: Actualmente el valueChanges() puede recibir un parámetro, que devuelve el id del documento que se consulta, sería tipo:
+
+.valueChanges({ idField: 'uid' })
+Sin necesidad de usar el snapshotChanges()
+
+			VIDEO 104 DISPATCH DE LA ACCION PARA CARGAR ITEMS
