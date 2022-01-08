@@ -654,3 +654,141 @@ NOTA: Actualmente el valueChanges() puede recibir un parámetro, que devuelve el
 Sin necesidad de usar el snapshotChanges()
 
 			VIDEO 104 DISPATCH DE LA ACCION PARA CARGAR ITEMS
+
+Fijate que no fue buena idea usar suscripciones en el servicio ya que vive en toda la app.Asi que he hecho lo que hizo Fernando y  es usar un componente con router-outlet que abastecerá a todos esos hijos y deja de existir al mostrar otra pagina como el login.
+Lógicamente sólo hay un componente así y es el dashboard:
+ userSubs!: Subscription;
+  ingresoSubs!: Subscription;
+
+  constructor(
+    private store: Store<AppState>,
+    private ingresoEgreso:IngresoEgresoService
+    ) { }
+
+  ngOnDestroy(): void {
+    this.userSubs.unsubscribe();
+    this.ingresoSubs.unsubscribe();
+  }
+
+  ngOnInit(): void {
+    this.userSubs = this.store.select('auth').pipe(
+       filter(auth => auth.user != null))
+      .subscribe( authInitialState => {
+        console.log('authInitialState', authInitialState);
+        
+        this.ingresoSubs = this.ingresoEgreso.initIngresoEgresoListener(authInitialState.user?.uid!)
+          .subscribe( (ingresosEgresos:any[]) => {
+          this.store.dispatch(setItems({ items: ingresosEgresos }));
+        });
+
+      });
+  }
+
+			VIDEO 105 MOSTRAR TODOS LOS ELEMENTOS DE INGRESO Y EGRESO
+
+Queremos llenar la página de detalles,que es una <table> con los ingresos del usuario.Sencillo,creo la suscripción a los items del ingresoEgreso en el componente y almaceno ese arreglo en una propiedad por conveniencia y legibilidad:
+
+   <tr *ngFor="let item of ingresosEgresos">
+       <td>{{item.description}}</td>
+       <td>{{item.monto | currency}}</td>
+       <td>{{item.tipo}}</td>
+IMPORTANTE: fijate como debo usar el pipe currency para que me saque el simbolo de $ y las comas a un numero(es decir que currency recibe un numero y lo formatea,pues yo tengo guardado un number,no un string)
+Con este pipe puedo simplemente usar <input type number> y luego le paso el pipe (en React tendré que crear una función para lo mismo)
+
+Por último fijate que nos habiamos dejado llamar al unsetItems y tenemos un lugar muy bueno para hacer esto,y es en la suscripcion a los cambios del authState que me da FirebaseAuth:
+
+ initAuthListener(){
+    this.afAuth.authState.subscribe( (fbUser) =>{
+        if(fbUser){...} else{
+     ...limpiar todo lo que quiera aqui
+     this.store.dispatch(ie.unSetItems());
+
+				VIDEO 106 ELIMINAR TAREAS DE FIREBASE
+
+Realmente ya tenemos el uid,simplemente hay que borrar en Firebase.Fijate que la ruta es algo asi: /IjuDVSPZktWbXBOv2bVJGuU3BoJ3/ingresos-egresos/items/In1m6d92qCPioDonn3u4
+
+Asi que necesito el uid del user y del ingreso.Fijate que delete(),add(),set() siempre me devuelven una Promesa así que la puedo devolver para llamar un Swal,por ejemplo:
+
+borrarIngresoEgreso(uid: string) {
+  return this.firestore.doc(`${this._user?.uid}/ingresos-egresos/items/${uid}`).delete();
+}
+
+Ahora inyecto el servicio y llamo a este método:
+ 
+ borrarItem(uid: string) {
+    this.ieService.borrarIngresoEgreso(uid)
+    .then( () => Swal.fire('Borrado', 'Item borrado correctamente', 'success'))
+    .catch(err => Swal.fire('Error', err.message, 'error'));
+  }
+
+Fijate que al trabajar con sockets no necesito nada más,nuestro Listener a los cambios en el documento se va a volver a disparar en tiempo real,redibujando la interfaz gráfica.Increible.
+
+NOTA:fijate de nuevo que es una gran idea dejar una propiedad user refiriendose al user actual en el authService por ejemplo,y encapsulada:
+  
+  private _user!:Usuario;
+  get user(){
+    return {...this._user};
+  }
+Asi puedo quitar esa suscripción,que realmente fue mala idea.Perfecto.
+Y en cuanto a que agregamos uid?:string al modelo,para que no me cree esa propiedad al guardar un ingresoEgreso simplemente la borro antes de guardarlo(dado que no es necesaria!):
+crearIngresoEgreso(ingresoEgreso:IngresoEgreso){
+ const uid =this.authService.user.uid; <- accedo al uid por el getter
+ delete ingresoEgreso.uid; <- borro el uid del ingresoEgreso
+ return this.firestore.doc(`${uid}/ingresos-egresos`)
+      .collection('items')
+      .add({ ...ingresoEgreso }) <- y retorno la Promise.Genial
+
+					VIDEO 107 PIPE ORDENAR ITEMS
+
+Queremos ordenar los items con un pipe.Todos los ingresos primero y despues los egresos.Realmente queda a discrección del desarrollador si meter el pipe en el modulo al que pertenecerá o dejarlo en una carpeta pipes.
+
+NOTA: nos daba error porque no podemos operar ya con el items del store,ya que no dejan mutarlo.La mejor solución es no haberlo pasado por referencia,sino haber entregado una copia de él.O hacer la copia en el pipe:
+  
+transform( items: IngresoEgreso[]):IngresoEgreso[]  {
+    if(items.length > 0){
+      return [...items].sort( (a,b) => 
+         (a.tipo < b.tipo) ? 1 : 
+         (a.tipo > b.tipo) ? -1 : 0);
+    }else{
+      return items;
+    }
+  }
+En el detalles.component.ts no rompimos la referencia,fijate:
+  ngOnInit(): void {
+    this.ingresosSubs = this.store.select('ingresosEgresos')
+      .subscribe( ({ items }) => this.ingresosEgresos = items);
+*Lógicamente al pasar al pipe ese this.ingresosEgresos le estoy pasando el items.Esto es un error y fijate que ya lo hemos echo más veces.
+IMPORTANTE: nunca entregar la propiedad del store a la que me suscribo,sino una copia(a no ser que quiera justo eso,no romper la referencia.
+      .subscribe( ({ items }) => this.ingresosEgresos = [...items]);
+  }
+
+NOTA:aparte de estas dos opciones se puede usar slice()que devuelve un nuevo arreglo:
+items.slice().sort(...) <- al no recortar por nada devuelve el mismo arreglo,pero es una mutación del mismo.Interesante.
+
+						VIDEO 108 COMPONENTE ESTADISTICA
+
+En este componente vamos a hacer un sumatorio de los ingresos y los egresos.Aparte,también vamos a devolver cúantos hay.
+
+  ngOnInit(): void {
+    this.store.select('ingresosEgresos')
+      .subscribe( ({ items }) => 
+      this.generarEstadistica([...items]));
+
+  }
+
+  generarEstadistica(items:IngresoEgreso[]){
+    for(let item of items){
+      if(item.tipo === 'ingreso'){
+        this.ingresos ++;
+        this.totalIngresos += item.monto;
+      }else{
+        this.egresos ++;
+        this.totalEgresos += item.monto;
+      }
+    }
+  }
+De nuevo,es mucho más sencillo de lo que parece.Puedo suscribirme al store parcial que yo quiera y con esa propiedad llamar a un método,algo que no había visto hasta ahora.
+
+			VIDEO 110 NG2-CHARTS - LIBRERIA PARA GRÁFICAS EN ANGULAR
+
+

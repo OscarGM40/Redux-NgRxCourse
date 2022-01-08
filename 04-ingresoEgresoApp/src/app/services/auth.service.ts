@@ -8,6 +8,7 @@ import { map } from 'rxjs/operators';
 import { AppState } from '../app.rootReducer';
 import { Usuario } from '../models/usuario.model';
 import * as auth from '../ngrx/auth.actions';
+import * as ie from '../ngrx/ingresoEgreso.actions';
 
 
 
@@ -15,7 +16,12 @@ import * as auth from '../ngrx/auth.actions';
 export class AuthService {
 
   userSubscription!: Subscription;
-  
+  private _user!:Usuario;
+
+  get user(){
+    return {...this._user};
+  }
+   
   constructor( 
       public afAuth: AngularFireAuth,
       private firestore:AngularFirestore,
@@ -31,12 +37,15 @@ export class AuthService {
             // console.log(firestoreUser);
             const { nombre, email, uid } = firestoreUser;
             const user = new Usuario(uid, nombre, email);
+            this._user = user;
             this.store.dispatch(auth.setUser({user}));
 
           });
         } else {
           this.userSubscription && this.userSubscription.unsubscribe();
           this.store.dispatch(auth.unsetUser());
+          this.store.dispatch(ie.unSetItems());
+
         }
       }
     );

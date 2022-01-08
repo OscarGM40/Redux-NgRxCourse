@@ -2,9 +2,9 @@
   <div class="col-12">
     <div class="card">
       <div class="card-body">
-        <h4 class="card-title">Detalle de ingreso egreso</h4>
+        <h3 class="card-title">Detalle de ingreso egreso</h3>
 
-        <table class="table">
+        <table class="table table-hover table-striped table-light">
           <thead>
             <tr>
               <th>Descripción</th>
@@ -15,11 +15,19 @@
           </thead>
 
           <tbody>
-            <tr>
-              <td>Descripción</td>
-              <td>Monto</td>
-              <td>Tipo</td>
-              <td>acciones</td>
+            <tr *ngFor="let item of ingresosEgresos | ordenarIngresos">
+              <td>{{item.description | titlecase}}</td>
+              <td>{{item.monto | currency}}</td>
+              <td [ngStyle]="{'color': item.tipo === 'ingreso' ? 'green' : 'red'}"
+              >{{item.tipo | uppercase}}</td>
+              <td>
+                <button 
+                  type="button"
+                  (click)="borrarItem(item.uid!)"
+                  class="btn btn-danger">
+                  <i class="fa fa-trash"></i>
+                  Borrar</button>
+              </td>
             </tr>
           </tbody>
 
