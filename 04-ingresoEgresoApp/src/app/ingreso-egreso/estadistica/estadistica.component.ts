@@ -3,6 +3,7 @@ import { Store } from '@ngrx/store';
 import { Subscription } from 'rxjs';
 import { AppState } from 'src/app/app.rootReducer';
 import { IngresoEgreso } from 'src/app/models/ingreso-egreso.model';
+import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
 
 @Component({
   selector: 'app-estadistica',
@@ -19,10 +20,21 @@ export class EstadisticaComponent implements OnInit, OnDestroy {
 
   ieSubs!: Subscription;
 
+  // Doughnut
+  public doughnutChartLabels: string[] = ['Ingresos', 'Egesos'];
+  
+  public doughnutChartData: ChartData<'doughnut'> = {
+    labels: this.doughnutChartLabels,
+    datasets: [ { data: [] }, ]
+  };
+  
+  public doughnutChartType: ChartType = 'doughnut';
+  public doughnutChartOptions: ChartConfiguration['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+  };
 
-  constructor(
-    private store: Store<AppState>,
-  ) { }
+  constructor( private store: Store<AppState>,) { }
 
   ngOnDestroy(): void {
     this.ieSubs.unsubscribe();
@@ -36,6 +48,11 @@ export class EstadisticaComponent implements OnInit, OnDestroy {
   }
 
   generarEstadistica(items: IngresoEgreso[]) {
+    this.ingresos = 0;
+    this.egresos = 0;
+    this.totalIngresos = 0;
+    this.totalEgresos = 0;
+    
     for (let item of items) {
       if (item.tipo === 'ingreso') {
         this.ingresos++;
@@ -45,6 +62,7 @@ export class EstadisticaComponent implements OnInit, OnDestroy {
         this.totalEgresos += item.monto;
       }
     }
+    this.doughnutChartData.datasets[0].data = [this.totalIngresos, this.totalEgresos];
   }
 
 }

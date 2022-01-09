@@ -791,4 +791,248 @@ De nuevo,es mucho más sencillo de lo que parece.Puedo suscribirme al store parc
 
 			VIDEO 110 NG2-CHARTS - LIBRERIA PARA GRÁFICAS EN ANGULAR
 
+Para instalar esta libreria hay que instalar el core(chart.js) y el adapter para angular(ng2-charts):
+npm install chart.js ng2-charts
+
+Despues hay que importar el modulo al proyecto:
+import { NgChartsModule } from 'ng2-charts';
+// In your App's module:
+imports: [ NgChartsModule ]
+
+Ahora pedirá una serie de Labels,Options,DataSets,lo de siempre:
+
+   // Doughnut
+  public doughnutChartLabels: string[] = ['Ingresos', 'Egesos'];
+  
+  public doughnutChartData: ChartData<'doughnut'> = {
+    labels: this.doughnutChartLabels,
+    datasets: [ { data: [] }, ]
+  };
+  
+  public doughnutChartType: ChartType = 'doughnut';
+  public doughnutChartOptions: ChartConfiguration['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+  };
+Fijate que sin pasarle una ChartConfiguration no se le podia cambiar la altura.
+
+				VIDEO 111 COLOCAR EL NOMBRE DEL USUARIO ACTUAL
+
+Queremos cambiar el nombre en el sideMenu por el del store.Fácil:
+  username!: string;
+  userSubs!: Subscription;
+
+  ngOnDestroy(): void {
+    this.userSubs.unsubscribe();
+  }
+
+  constructor(
+    private store: Store<AppState>
+  ) {
+    this.userSubs = this.store.select('auth')
+      .pipe(filter( ({user}) => user?.nombre != null))
+      .subscribe( ({ user }) => this.username = user!.nombre);
+  }
+Recuerda que puedo filtrar para evitar los posibles primeros null y que hay que gestionar la cancelación a las suscripciones.
+
+				SECCION 10 NGRX CON LAZYLOAD Y PROTECCION CON GUARDS
+
+En esta sección vamos a modularizar la aplicación para implementar el lazyload.Crearemos varios modulos pues.
+También usaremos esta misma técnica con el store,cargandolo perezosamente o en partes también.
+
+Esta sección será un excelente reforzamiento al tema de los módulos de Angular y el LazyLoad de Angular, realmente de Redux, lo único que me interesa explicar el la característica forFeature del StoreModule, pero para implementarla y explicarla, necesito un ejemplo real, por lo que lo vamos a crear aquí.
+
+Temas de la sección:
+
+1- Módulos de Angular
+2- Módulo Auth
+3- Módulo Share
+4- Módulo de Ingresos y Egresos
+5- Dashboard Routing Module
+6- Implementar LazyLoad en Angular
+7- Guards
+   a- Can Activate
+   b-Can Load
+8- Implementar el StoreModule.forFeature()
+
+					VIDEO 116 MODULO AUTH
+
+Empezaremos por el modulo auth:
+ng g m auth/auth --flat
+Fijate que esta sección recién modularizada pide el ReactiveFormsModule y el RouterModule,aparte de sus dos componentes en declarations:
+@NgModule({
+  declarations: [
+    LoginComponent,
+    RegisterComponent,
+   ],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterModule
+  ]
+})
+Por último,fijate que siempre debimos haber empezado a trabajar ya asi,modularizando,pero lo hicimos por motivos didácticos.
+Angular sabe cuando un módulo ya esta cargado y no lo vuelve a cargar aunque este referenciado en varios lugares
+Y al usar la directiva routerLink en un modulo automáticamente necesita del RouterModule ese módulo.
+
+							VIDEO 117 MÓDULO SHARE
+
+Fijate que todo parecia sencillo,parecia igual que el authModule,pero no.Dado que en el dashboard.html yo voy a usar <app-footer>,<app-sidebar> y el <app-navbar> tengo que exportar esos componentes.
+Cuando otro modulo necesite de los componentes del modulo actual hay que exportarlos!:
+@NgModule({
+  declarations: [
+    FooterComponent,
+    NavbarComponent,
+    SidebarComponent
+  ],
+  imports: [
+    CommonModule,
+    RouterModule
+  ],
+  exports: [
+    FooterComponent,
+    NavbarComponent,
+    SidebarComponent
+  ]
+})
+export class SharedModule { }
+
+Fijate que esto me va a pasar muchisimo,es un concepto clave.Y recuerda que si Angular no encuentra una directiva necesita el módulo,por ejemplo *ngFor y *ngIf necesitarán del CommonsModule en ese módulo
+
+					VIDEO 118 MODULO INGRESO-EGRESO
+
+Este modulo tiene algo más de complejidad,al traer el DashboardComponent pedirá el SharedModule,aparte del pipe,formularios y las gráficas:
+@NgModule({
+  declarations: [
+    DashboardComponent,
+    IngresoEgresoComponent,
+    EstadisticaComponent,
+    DetalleComponent,
+    OrdenarIngresosPipe,
+
+  ],
+  imports: [
+    CommonModule,
+    NgChartsModule,
+    ReactiveFormsModule,
+    SharedModule,
+    RouterModule
+  ],
+})
+export class IngresoEgresoModule { }
+
+					VIDEO 119 DASHBOARD ROUTING MODULE
+
+IMPORTANTE:fijate que el objetivo es que el ingresoEgresoModule cargue perezosamente,asi que hay que quitarlo de los imports en el app.module.
+Lamentablemente Fernando ha mezclado muchas cosas,pero a grosso modo ha creado un app.module y un app-routing.module para las rutas:
+En el modulo app.module
+imports: [
+    BrowserModule,
+    HttpClientModule,
+    AuthModule,
+    AppRoutingModule, // rutas Padre <- pido al otro modulo con las rutas padre
+
+Ese modulo de rutas padre recuerda que las configura,lo que implica importar y exportar:
+const routes: Routes =
+  [ { path: 'login', component: LoginComponent,  },
+    { path: 'register', component: RegisterComponent,  },
+    { path: 'dashboard',
+      loadChildren: () => import('./ingreso-egreso/ingreso-egreso.module').then(m => m.IngesoEgresoModule)
+    },
+    { path: '**', pathMatch: 'full', redirectTo: 'login' }
+  ];
+
+@NgModule({
+  imports: [ RouterModule.forRoot(routes) ],
+  exports: [ RouterModule ]
+})
+export class AppRoutingModule { }
+
+Ya estamos cargando perezosamente lo que cargue ese modulo.Recuerda que hay que apuntar al modulo entero,no al modulo o archivo de rutas:
+
+En el padre se apunta a los modulos con todo el contenido:
+    loadChildren: () => import('./ingreso-egreso/ingreso-egreso.module').then(m => m. IngresoEgresoModule)
+
+Ese módulo IngresoEgresoModule al cargarse pedirá estos modulos,entre ellos el de sus rutas:
+imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    NgChartsModule,
+    SharedModule,
+    DashboardRoutesModule <- al pedir a este se completa el lazyload
+  ],
+
+Su archivo de rutas luce asi:
+const rutasHijas: Routes = [
+  {  path: 'dashboard',
+     component: DashboardComponent,
+     children: dashboardRoutes,
+}];
+
+@NgModule({
+  declarations: [],
+  imports: [ RouterModule.forChild(rutasHijas) ],
+  exports: [ RouterModule ]
+})
+export class DashboardRoutesModule { }
+De nuevo fijate que es un archivo de configuración,luego import y export.
+
+Incluso al levantar el ng serve ya puedo ver el lazyload en una zona llamada Lazy Chunk Files:
+Lazy Chunk Files                                   | Names         |      Size
+src_app_ingreso-egreso_ingreso-egreso_module_ts.js | -             | 648.65 kB
+
+Puedo ver que los conceptos core del lazy load en Angular son:
+1-eliminar el modulo de los imports del padre,ya que si no lo carga
+2- usar loadChildren apuntando a ese modulo en las rutas del padre
+3- el hijo cargará su propio modulo de rutas,configurado con la propiedad children(opcional).Usara RouterModule.forChild
+
+Recalcar que nada impide al padre hacer lazyload sobre varios hijos:
+const routes: Routes = [
+  {
+    path: 'customers',
+    loadChildren: () => import('./customers/customers.module').then(m => m.CustomersModule)
+  },
+  {
+    path: 'orders',
+    loadChildren: () => import('./orders/orders.module').then(m => m.OrdersModule)
+  }
+];
+
+					VIDEO 121 CANLOAD
+
+Con los cambios que hemos hecho se nos ha quedado asi el canActivate que teniamos:
+En las rutas hijas:
+
+const rutasHijas: Routes = [
+  {  path: '',
+     component: DashboardComponent,
+     children: dashboardRoutes,
+     canActivate:[AuthGuard]  
+}];
+Pero esto es un error,ya que el usuario ya ha llegado hasta la ruta hija /dashboard y ha accedido a la app.
+Es mejor usar canLoad y que ni siquiera pueda cargar la ruta,y en el padre.Sin embargo,debo tener en cuenta que canLoad debe activarse en cada ruta,asi que tendré que usar take(1) para que cancele la suscripción en cada cambio de ruta,volviendo a ejecutarse en el siguiente:
+export class AuthGuard implements CanActivate,CanLoad {
+
+  constructor(
+    private authService: AuthService,
+    private router: Router) { }
+  
+  canActivate(): Observable<boolean> | boolean {
+    return this.authService.isAuth().pipe(
+      tap( auth => {
+        if (!auth) { this.router.navigate(['/login']); }
+      }));
+  }
+  canLoad(): Observable<boolean> | boolean {
+    return this.authService.isAuth().pipe(
+      tap( auth => {
+        if (!auth) { this.router.navigate(['/login']); }
+      }),
+      take(1)); <- ojo con el take(1)
+  }
+}
+Esto es siempre asi?De todas formas es importante entender porqué se realiza cada paso.En el siguiente video vamos a ver como NO enseñar al usuario todo el árbol del store,e ir cargando o mostrandolo de igual forma que con los modulos,segun se vayan cargando los módulos.
+
+					VIDEO 122 LAZYLOAD STORE
+
 

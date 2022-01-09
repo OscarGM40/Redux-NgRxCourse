@@ -2,21 +2,14 @@ import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { HttpClientModule } from '@angular/common/http';
 
+/* Modulos de rutas */
 import { AppRoutingModule } from './app-routing.module';
 
-import { ReactiveFormsModule } from '@angular/forms';
+/* Modulos segmentando la app */
+import { AuthModule } from './auth/auth.module';
 
-
+/* componentes */
 import { AppComponent } from './app.component';
-import { LoginComponent } from './auth/login/login.component';
-import { RegisterComponent } from './auth/register/register.component';
-import { DashboardComponent } from './dashboard/dashboard.component';
-import { IngresoEgresoComponent } from './ingreso-egreso/ingreso-egreso.component';
-import { SidebarComponent } from './shared/sidebar/sidebar.component';
-import { FooterComponent } from './shared/footer/footer.component';
-import { NavbarComponent } from './shared/navbar/navbar.component';
-import { EstadisticaComponent } from './ingreso-egreso/estadistica/estadistica.component';
-import { DetalleComponent } from './ingreso-egreso/detalle/detalle.component';
 
 /* AngularFire */
 import { AngularFireModule } from '@angular/fire/compat';
@@ -28,32 +21,25 @@ import { environment } from 'src/environments/environment';
 import { StoreModule } from '@ngrx/store';
 import { StoreDevtoolsModule } from '@ngrx/store-devtools';
 import { rootReducer } from './app.rootReducer';
-import { OrdenarIngresosPipe } from './pipes/ordenar-ingresos.pipe';
+
+
 
 @NgModule({
   declarations: [
     AppComponent,
-    LoginComponent,
-    RegisterComponent,
-    DashboardComponent,
-    IngresoEgresoComponent,
-    EstadisticaComponent,
-    DetalleComponent,
-    SidebarComponent,
-    FooterComponent,
-    NavbarComponent,
-    OrdenarIngresosPipe
   ],
   imports: [
     BrowserModule,
-    AppRoutingModule,
     HttpClientModule,
-    ReactiveFormsModule,
-    /* FORMA ANTERIOR */
+    AuthModule,
+    AppRoutingModule, // rutas Padre
+    
+    /* FIREBASE */
     AngularFireModule.initializeApp(environment.firebase),
     AngularFirestoreModule,
     AngularFireAuthModule,
-    /* FORMA NGRX */
+
+    /* NGRX REDUX-ANGULAR*/
     StoreModule.forRoot(rootReducer),
     StoreDevtoolsModule.instrument({
       maxAge: 25, 
