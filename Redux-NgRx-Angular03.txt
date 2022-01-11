@@ -1,0 +1,72 @@
+					SECCION 12 EFFECTS-APP NGRX/EFFECTS
+
+Crearemos una aplicación con rutas que consumirá un servicio REST de fake datas.El objetivo es ver como e manejan los efectos,pero primero habrá que construir la app.
+Para aprender y comprender los efectos, necesitaremos crear una aplicación que los necesite, ya que no podemos usar efectos si no tenemos implementado un Store de NgRx
+
+1- Creación de un proyecto de Angular
+2- Módulos de Angular
+3- Rutas
+4- Consumo de servicios REST
+5- Servicios
+6- HTML de los componentes
+7- Aplicación básica de Angular
+
+Esta sección crearemos una pequeña app de Angular que consuma servicios REST de forma tradicional, para que podamos observar la diferencia cuando ya integremos los efectos
+
+		VIDEO 132-133 INICIO PROYECTO CREACIÓN COMPONENTES-MODULOS-FOLDERS...
+
+Creo la aplicación y le implemento las CDNs para Bootstrap y FontAwesome.Creo las carpetas que indica Fernando y los modulos y componentes.Apenas tendrá un par de rutas la aplicación.Muy sencillo y claro todo.
+
+const routes: Routes = [
+  { path: 'home', component: ListaComponent },
+  { path: 'usuario/:id', component: UsuarioComponent },
+  { path: '**', pathMatch: 'full', redirectTo: 'home' }
+];
+
+Creo los <anchor> en la navbar de forma básica de momento:
+     <li class="nav-item">
+          <a class="nav-link" 
+            routerLink="/home"
+            routerLinkActive="active"
+            >Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link"
+          routerLink="usuario/1"
+          routerLinkActive="active"
+          >Usuario</a>
+        </li>
+
+Fijate que inteligente ha sido Fernando para que no haga el refresh el form quita la etiqueta form por su contrapartida que es un div.Asi no hay que importar un módulo de forms para algo tan nimio:
+
+   <div class="d-flex">
+        <input
+          class="form-control me-2"
+          type="search"
+          #txtSearch
+          (keyup.enter)="search(txtSearch.value)"
+          placeholder="Buscar usuario...">
+          <button
+          (click)="search(txtSearch.value)"
+          class="btn btn-outline-success"
+          type="submit">Search</button>
+      </div>
+
+Aparte queremos redireccionar tanto en un enter sobre el input como en un click sobre el botón.
+  constructor(private router: Router) { }
+
+  search(termino:string): void {
+    if (!termino ) { return; }
+    this.router.navigate(['/usuario', termino]);
+  }
+También fijate como !termino y termino.lenght === 0 es lo mismo.
+
+					VIDEO 136 REQRES Y POSTMAN
+
+Usaremos https://reqres.in/ que es un backend de pruebas con usuarios.REcuerda que en este servicio REST puedo incluso hacer peticiones POST y grabar en su API.
+NOTA: reqres está desplegado en DigitalOcean.
+Por último creamos una clase para el tipado e instanciar usuarios.
+
+					VIDEO 138 USUARIO SERVICE
+
+

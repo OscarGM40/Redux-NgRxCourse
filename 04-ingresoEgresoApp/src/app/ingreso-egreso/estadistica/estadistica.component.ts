@@ -1,9 +1,10 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { Subscription } from 'rxjs';
-import { AppState } from 'src/app/app.rootReducer';
-import { IngresoEgreso } from 'src/app/models/ingreso-egreso.model';
 import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
+
+import { IngresoEgreso } from 'src/app/models/ingreso-egreso.model';
+import { AppStateWithIngreso } from 'src/app/ngrx/ingresoEgreso.reducer';
 
 @Component({
   selector: 'app-estadistica',
@@ -34,7 +35,7 @@ export class EstadisticaComponent implements OnInit, OnDestroy {
     maintainAspectRatio: false,
   };
 
-  constructor( private store: Store<AppState>,) { }
+  constructor( private store: Store<AppStateWithIngreso>,) { }
 
   ngOnDestroy(): void {
     this.ieSubs.unsubscribe();

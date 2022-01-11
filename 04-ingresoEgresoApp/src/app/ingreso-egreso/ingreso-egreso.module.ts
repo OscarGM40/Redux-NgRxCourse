@@ -12,6 +12,8 @@ import { DashboardComponent } from '../dashboard/dashboard.component';
 import { OrdenarIngresosPipe } from '../pipes/ordenar-ingresos.pipe';
 import { SharedModule } from '../shared/shared.module';
 import { DashboardRoutesModule } from '../dashboard/dashboard-routes.module';
+import { StoreModule } from '@ngrx/store';
+import { ingresoEgresoReducer } from '../ngrx/ingresoEgreso.reducer';
 
 
 
@@ -26,6 +28,7 @@ import { DashboardRoutesModule } from '../dashboard/dashboard-routes.module';
   ],
   imports: [
     CommonModule,
+    StoreModule.forFeature('ingresosEgresos', ingresoEgresoReducer),
     ReactiveFormsModule,
     NgChartsModule,
     SharedModule,

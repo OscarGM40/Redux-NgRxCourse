@@ -7,7 +7,7 @@ import * as IE from './ngrx/ingresoEgreso.reducer';
 export interface AppState {
    ui: UI.InitialState; 
    auth: Auth.authInitialState;
-   ingresosEgresos: IE.ingresoEgresoInitialState;
+   // ingresosEgresos: IE.ingresoEgresoInitialState;
 }
 
 
@@ -15,5 +15,5 @@ export interface AppState {
 export const rootReducer: ActionReducerMap<AppState> = {
    ui: UI.uiReducer,
    auth: Auth.authReducer,
-   ingresosEgresos: IE.ingresoEgresoReducer
+   // ingresosEgresos: IE.ingresoEgresoReducer
 }
