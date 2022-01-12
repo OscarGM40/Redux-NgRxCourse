@@ -1,1 +1,18 @@
-<p>lista works!</p>
+<div class="row row-cols-1 row-cols-md-3 g-4 mt-1">
+
+  <div class="col" *ngFor="let usuario of usuarios">
+    <div class="card h-100">
+      <img [src]="usuario.avatar"
+        height="250px"
+        class="card-img-top" alt="himajen komplega">
+      <div class="card-body">
+        <h5 class="card-title">{{usuario.first_name}} {{usuario.last_name}}</h5>
+        <p class="card-text">{{'This is a longer card with supporting from Mars'}}</p>
+      </div>
+      <div class="card-footer">
+        <small class="text-muted">Id: {{usuario.id}}</small>
+      </div>
+    </div>
+  </div>
+
+</div>
