@@ -69,4 +69,383 @@ Por último creamos una clase para el tipado e instanciar usuarios.
 
 					VIDEO 138 USUARIO SERVICE
 
+Creo un servicio común y corriente.Simplemente traerá los usuarios:
+export class UsuarioService {
+  private url = 'https://reqres.in/api';
+
+  constructor(private http: HttpClient) { }
+
+  getUsuarios() {
+    return this.http.get(`${this.url}/users?per_page=6`)
+      .pipe(map( (resp:any) => resp.data));
+  }
+}
+
+Bien,ahora habría que inyectar este servicio en la clase/componente que quisieramos,sería algo así:
+ export class ListaComponent implements OnInit {
+
+  constructor(public usuarioService: UsuarioService) { }
+
+  ngOnInit(): void {
+    this.usuarioService.getUsuarios()
+    .subscribe(resp => {
+      console.log(resp);
+    });
+  }
+}
+Obviamente al visitar la ruta /lista me devolverá el resultado de llamar por GET a esa url,que será el arreglo de usuarios.
+
+					VIDEO 139 HTML DEL LISTA-COMPONENT
+
+Dado que ya tenemos ese pequeño arreglo de usuarios podemos crear alguna card con bootstrap,por ejemplo:
+<div class="row row-cols-1 row-cols-md-3 g-4 mt-1">
+
+  <div class="col" *ngFor="let usuario of usuarios">
+    <div class="card h-100">
+      <img [src]="usuario.avatar"
+        height="250px"
+        class="card-img-top" alt="himajen komplega">
+      <div class="card-body">
+        <h5 class="card-title">{{usuario.first_name}} {{usuario.last_name}}</h5>
+        <p class="card-text">{{'This is a longer card with supporting from Mars'}}</p>
+      </div>
+      <div class="card-footer">
+        <small class="text-muted">Id: {{usuario.id}}</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+Poco más,hago el backup de la sección en GitHub.
+
+					SECCIÓN 13 NGRX/EFFECTS 
+
+Recuerda que un efecto se pone en medio entre una acción y un servicio.
+
+Esta sección se enfoca puramente en el uso de efectos y su comprensión, los efectos pueden ser un tema complicado, pero aquí lo explicaremos de una forma que podamos comprenderlo mejor y a su vez, usarlos en un proyecto real.
+Los temas puntuales de la sección:
+
+1- EffectsModule
+2- Effects
+3- Actions de Efects
+4- ofType
+5- RXJS
+ a- Observables
+ b- catchError
+ c- map
+ d- swithMap
+ e- of
+6- Consumo de servicios REST
+7- Efectos con y sin parámetros
+8- Teoría de los efectos
+9- Implementación de efectos
+
+Al finalizar la sección tienen el código fuente de la misma por si acaso lo necesitaran para compara contra su código
+
+				VIDEO 144 ACCIONES DEL SCHEMA USUARIOS
+
+Creo la carpeta store y en ella otras tres,effects,actions y reducers.Defino las acciones para los usuarios.Fijate que el scaffolding parece bastante bueno:
+
+import { createAction, props } from '@ngrx/store';
+import { Usuario } from 'src/app/models/usuario.model';
+
+export const cargarUsuarios = createAction('[Usuarios] cargarUsuarios');
+
+export const cargarUsuariosSuccess = createAction(
+  '[Usuarios] cargarUsuariosSuccess',
+  props<{usuarios:Usuario[]}>()
+);
+
+export const cargarUsuariosError = createAction(
+  '[Usuarios] cargarUsuariosError',
+  props<{payload:any}>()
+);
+
+					VIDEO 145 REDUCER DE USUARIOS
+
+ En cuanto al reducer de usuarios lucirá asi:
+const _UsuariosReducer = createReducer(initialState,
+
+  on(cargarUsuarios, state => ({ ...state, loading: true })),
+  on(cargarUsuariosSuccess, (state, { usuarios }) =>
+  ({
+    ...state,
+    loading: false,
+    loaded: true,
+    users: [...usuarios]
+  })),
+  on(cargarUsuariosError, (state, { payload }) =>
+  ({
+    ...state,
+    loading: false,
+    loaded: false,
+    error: payload
+  })
+  )
+);
+
+			VIDEO 146 APP-ROOT-REDUCER,STORE MODULE Y DEVTOOLS
+
+Recuerda que la propiedad environment se trae de los environment normales:
+    StoreModule.forRoot(rootReducer),
+    StoreDevtoolsModule.instrument({
+      maxAge: 25, // Retains last 25 states
+      logOnly: environment.production, 
+    }),
+Una vez con todo configurado ya no vamos a inyectar el servicio,sino que usaremos efectos.Los efectos me permitirán hacer lo mismo pero con menos código:
+ constructor(public usuarioService: UsuarioService) { }
+
+					VIDEO 147 INTRODUCCIÓN A EFECTOS
+
+Los efectos pueden ser vistos como la tercera ley de Newton que dice que por cada acción hay una reacción(aunque en este caso sería por cada acción hay un efecto)
+
+Sin embargo cabe destacar que no todas las acciones van a disparar efectos,sólo las que yo quiera.
+Un efecto es como un Listener,esta escuchando a que se disparé la acción a la que está asociado.Si se dispara ejecutará su lógica.
+
+FEATURES DE LOS EFFECTS
+Los efectos sólo funcionan con la librería ngrx/store.
+Tratan de simplificar la lógica en los componentes y que esa lógica vaya al servicio.
+Se pueden comunicar fuera del ecosistema Angular(Http,sockets o tareas asíncronas).
+
+				VIDEO 148 CREANDO NUESTROS EFECTOS	
+
+Los efectos no son más que una simple clase con el decorador @Injectable,la cual inyectará la clase Actions en su constructor.Recuerda que los efectos son algo de ngrx,luego hay que instalarlos:
+npm i @ngrx/effects -S
+
+import { Injectable } from '@angular/core';
+import { Actions,createEffect,ofType } from '@ngrx/effects';
+
+@Injectable()
+export class UsuariosEffects {
+  constructor(private actions$:Actions){}
+}
+
+En pocas palabras actions$ es un Observables que estará escuchando por las Acciones que se disparen,algo que ya hemos dicho.
+
+Para crear un efecto se usa el método createEffect y operadores rxjs.Recuerda que el mergeMap fusiona cada Observable fuente en una única salida como Observable también:
+
+  cargarUsuarios$ = createEffect( () => this.actions$.pipe(
+      ofType(cargarUsuarios),
+      tap(data => console.log('effect tap',data)),
+      /* mergeMap debe retornar un nuevo Observable en su callback,fusionando todos los Observable fuente */
+      mergeMap( () => this.usuarioService.getUsuarios()
+      .pipe(tap(data=>console.log('getUsers',data))))
+      ),);
+
+Fijate que ya me proporcionan el operador ofType(action) que filtra las acciones,sino este Observable se dispararía al dispararse cada acción
+
+ Ahora,en vez de llamar al servicio en un componente,dado que ya lo llama la accion mediante el efecto habrá que simplemente llamar a la acción:
+
+export class ListaComponent implements OnInit {
+
+  usuarios:Usuario[] = [];
+  
+  constructor(
+    // public usuarioService: UsuarioService, <- ya no inyecto el servicio
+    private store: Store<AppState>
+    ) { }
+
+  ngOnInit(): void {
+    this.store.dispatch(cargarUsuarios()); <-sino que disparo la acción
+  /*   this.usuarioService.getUsuarios()
+    .subscribe(resp => {
+      this.usuarios = resp
+    }); */
+  }
+
+Aún falta una pequeña configuración y es exportar todas las clases que sean un efecto en un arreglo y pasarselo al AppModule:
+
+import { UsuariosEffects } from "./usuarios.effects";
+
+export const EffectsArray:any[] = [
+  UsuariosEffects
+];
+
+Y en el app.module importo hacia la app el modúlo EffectsModule con un arreglo de Efectos.Fijate que usamos dos pasos pero bien podía importar en este módulo las clases,claro que siempre hay que mantener el App.module lo más limpio posible:
+
+imports:[...
+  EffectsModule.forRoot(EffectsArray)
+...]
+
+Aún faltará volver a almacenar los usuarios en esa propiedad de la clase para iterar sobre la template:
+  ngOnInit(): void {
+    this.store.select('usuarios')
+      .subscribe( ({users}) => this.usuarios = [...users] );
+    this.store.dispatch(cargarUsuarios());
+
+Puedo ver que un efecto se va a poner entre la acción y el servicio,dejandome ejecutar código en él.Claro que no encuentro el beneficio,podría ejecutar ese código sin usar efectos.
+
+				VIDEO 150 MANEJO DE ERRORES EN LOS EFECTOS
+
+Hemos manejado el 'camino feliz',pero,¿qué pasa si hubiera errores en el efecto?.Recordemos que habiamos creado una accion para el error con las props<payload:any>().
+Para manejar el error podemos usar el operador catchError y of para devolver un Observable con el error:
+
+   mergeMap(  () => this.usuarioService.getUsuarios()
+      .pipe(
+        map( users => cargarUsuariosSuccess({usuarios:users}) ),
+        catchError( error => of(cargarUsuariosError({payload:error})) )
+        ))
+      ),
+  );
+Ahora ya tendremos el error metido en el store si lo hubiera.Además no vamos a cargar todo el error ya que es muy extenso:
+  on(cargarUsuariosError, (state, { payload }) =>
+  ({
+    ...state,
+    loading: false,
+    loaded: false,
+    error: {
+      url: payload.url,
+      name: payload.name,
+      message: payload.message,
+      status: payload.status
+    }
+Claro que lo suyo es verlo por pantalla y no sólo en el store.
+Realmente no es tan complicado todo,es usar mergeMap sobre el servicio,y usar el map y el catchError:
+cargarUsuarios$= createEffect( () => this.actions$.pipe(
+   ofType(cargarUsuarios),
+      mergeMap(  () => this.usuarioService.getUsuarios()
+      .pipe(
+        map( users => cargarUsuariosSuccess({usuarios:users}) ),
+        catchError( error => of(cargarUsuariosError({payload:error})) )
+        ))
+      ),
+De nuevo puedo ver que lo que se hace es interceptar una acción concreta con ofType tras iterarlas con this.actions$:Actions  y disparar varios Observables encadenados fusionandolos con mergeMap según haya exito o no en la llamada al primer Observable serán unos u otros.
+
+				VIDEO 151 MOSTRAR ERROR EN PANTALLA
+
+Fijate que la api de reqres.io permite pasarle un delay como queryParam opcional:
+  getUsuarios() {
+    return this.http.get(`${this.url}/users?per_page=6&delay=4`)
+
+Ahora en vez de crear sólo propiedades para los users creamos para el error y el loading:
+
+  ngOnInit(): void {
+    this.store.select('usuarios')
+      .subscribe( ({users,loading,error}) => {
+        this.usuarios = [...users];
+        this.loading = loading;
+        this.error = error; 
+      });
+
+Realmente esto es algo que debe hacerse,dar feedback de sí se está cargando data y de si hay un error.Es realmente sencillo llegados a este punto(fijate en lo importante que es organizarse bien con redux y dejar propiedades para el error y el loading mínimo):
+
+<div class="alert alert-info d-flex flex-row-reverse justify-content-center align-items-baseline" *ngIf="loading">
+  <h4 class="alert-heading">Cargando...</h4>
+  <p>
+    <i class="fa fa-sync fa-spin fa-2x me-3"></i>
+  </p>
+</div>
+
+Y para un error tres cuartos de lo mismo:
+<div class="alert alert-danger d-flex flex-column" *ngIf="error">
+  <h4 class="alert-heading">Error</h4>
+  <pre>
+      {{ error | json }}
+  </pre>
+</div>
+IMPORTANTE:para testear el error simplemente usar una url mala.
+
+			VIDEO 152 USUARIO ACTIONS,REDUCER Y STATE
+
+Es momento de crear la pagina de /usuario/:id,tanto la lógica como el html.Empezando por las acciones,la única diferencia es que cargarUsuario pedirá un id como props:
+
+export const cargarUsuario = createAction(
+  '[Usuario] cargarUsuario',
+  props<{ id: string }>());
+
+export const cargarUsuarioSuccess = createAction(
+  '[Usuario] cargarUsuarioSuccess',
+  props<{usuario:Usuario}>()
+);
+
+export const cargarUsuarioError = createAction(
+  '[Usuario] cargarUsuarioError',
+  props<{payload:any}>()
+);
+
+En cuanto al reducer será otro diferente con alguna propiedad extra pero muy parecido:
+
+export interface UsuarioInitialState {
+  id: string | null;
+  user: Usuario | null;
+  loaded: boolean;
+  loading: boolean;
+  error: any;
+}
+
+export const initialState: UsuarioInitialState = {
+  id: null,
+  user: null,
+  loaded: false,
+  loading: false,
+  error: null
+}
+Lo agrego al rootReducer y debería ver ya dos stores colgando del store raiz.
+
+					 VIDEO 153 EFFECTS PARA UN USUARIO
+
+Para rescatar el id del usuario me suscribo a los params y creo un método que haga la petición a reqres de un usuario:
+  getUsuarioById(id: string) {
+    return this.http.get(`${this.url}/users/${id}`)
+    .pipe(
+      map((resp: any) => resp.data)
+    );
+  }
+
+Disparo la acción,que llamará al efecto acumulando en usuario el user actual:
+
+  ngOnInit(): void {
+    this.router.params.subscribe(params => {
+      this.store.dispatch( cargarUsuario({ id: params['id'] }) );
+    });
+  }
+
+Falta crear el efecto:
+  cargarUsuario$ = createEffect(
+    () => this.actions$.pipe(
+      ofType(cargarUsuario),
+      mergeMap(action => this.usuarioService.getUsuarioById(action.id)
+        .pipe(
+          map(user => cargarUsuarioSuccess({ usuario: user })),
+          catchError(error => of(cargarUsuarioError({ payload: error })))
+        ))
+    ));
+Fijate que el action.id lo recibe el mergeMap del ofType,es decir de la acción cargarUsuario.Recuerda que en el app.module se recibe el array de Clases-Efectos,pero lo estamos apilando ya en un archivo anterior para mantener ese archivo lo más limpio posible exportando el array desde alli:
+
+en Effects/index.ts:
+
+export const EffectsArray:any[] = 
+[
+  UsuariosEffects,
+  UsuarioEffects
+];
+
+IMPORTANTE:al usar efectos siempre necesitaré mñinimo dos acciones(mejor tres para el error),una que se despache desde el componente y sea escuchada por el efecto y otra para actualizar el reducer llamandola desde los efectos.
+Sea como sea si algun dia lo implemento puedo consultar de nuevo esto.
+
+					VIDEO 154 CREAR EL HTML PARA UN USUARIO
+
+Creamos algo bonito y fijate de nuevo lo importante que son los ngIf.
+
+<div class="row" *ngIf="usuario">
+  <div class="col-4">
+    <img [src]="usuario.avatar" class="img-thumbnail" [alt]="usuario.first_name">
+  </div>
+  <div class="col">
+    <ul class="list-group">
+      <li class="list-group-item">
+        <strong>Nombre:</strong>
+        {{usuario.first_name}}
+      </li>
+      <li class="list-group-item">
+        <strong>Apellido:</strong>
+        {{usuario.last_name}}
+      </li>
+    </ul>
+  </div>
+</div>
+
+Por último retoco cualquier cosa necesaria y hago el despliegue a GitHubPages.
+Recuerda que una app de Angular necesita <base href=""> y no <base href="/">
+Genial curso introductorio a NgRx.Seguir investigando.
 

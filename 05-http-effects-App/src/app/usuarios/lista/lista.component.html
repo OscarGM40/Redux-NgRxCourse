@@ -1,10 +1,23 @@
+<div class="alert alert-info d-flex flex-row-reverse justify-content-center align-items-baseline" *ngIf="loading">
+  <h4 class="alert-heading">Cargando...</h4>
+  <p>
+    <i class="fa fa-sync fa-spin fa-2x me-3"></i>
+  </p>
+</div>
+
+<div class="alert alert-danger d-flex flex-column" *ngIf="error">
+  <h4 class="alert-heading">Error</h4>
+  <pre>
+      {{ error | json }}
+  </pre>
+</div>
+
+
 <div class="row row-cols-1 row-cols-md-3 g-4 mt-1">
 
   <div class="col" *ngFor="let usuario of usuarios">
     <div class="card h-100">
-      <img [src]="usuario.avatar"
-        height="250px"
-        class="card-img-top" alt="himajen komplega">
+      <img [src]="usuario.avatar" height="250px" class="card-img-top" alt="himajen komplega">
       <div class="card-body">
         <h5 class="card-title">{{usuario.first_name}} {{usuario.last_name}}</h5>
         <p class="card-text">{{'This is a longer card with supporting from Mars'}}</p>
