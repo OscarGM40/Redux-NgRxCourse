@@ -384,4 +384,68 @@ Lo agrego al rootReducer y debería ver ya dos stores colgando del store raiz.
 
 					 VIDEO 153 EFFECTS PARA UN USUARIO
 
+Para rescatar el id del usuario me suscribo a los params y creo un método que haga la petición a reqres de un usuario:
+  getUsuarioById(id: string) {
+    return this.http.get(`${this.url}/users/${id}`)
+    .pipe(
+      map((resp: any) => resp.data)
+    );
+  }
+
+Disparo la acción,que llamará al efecto acumulando en usuario el user actual:
+
+  ngOnInit(): void {
+    this.router.params.subscribe(params => {
+      this.store.dispatch( cargarUsuario({ id: params['id'] }) );
+    });
+  }
+
+Falta crear el efecto:
+  cargarUsuario$ = createEffect(
+    () => this.actions$.pipe(
+      ofType(cargarUsuario),
+      mergeMap(action => this.usuarioService.getUsuarioById(action.id)
+        .pipe(
+          map(user => cargarUsuarioSuccess({ usuario: user })),
+          catchError(error => of(cargarUsuarioError({ payload: error })))
+        ))
+    ));
+Fijate que el action.id lo recibe el mergeMap del ofType,es decir de la acción cargarUsuario.Recuerda que en el app.module se recibe el array de Clases-Efectos,pero lo estamos apilando ya en un archivo anterior para mantener ese archivo lo más limpio posible exportando el array desde alli:
+
+en Effects/index.ts:
+
+export const EffectsArray:any[] = 
+[
+  UsuariosEffects,
+  UsuarioEffects
+];
+
+IMPORTANTE:al usar efectos siempre necesitaré mñinimo dos acciones(mejor tres para el error),una que se despache desde el componente y sea escuchada por el efecto y otra para actualizar el reducer llamandola desde los efectos.
+Sea como sea si algun dia lo implemento puedo consultar de nuevo esto.
+
+					VIDEO 154 CREAR EL HTML PARA UN USUARIO
+
+Creamos algo bonito y fijate de nuevo lo importante que son los ngIf.
+
+<div class="row" *ngIf="usuario">
+  <div class="col-4">
+    <img [src]="usuario.avatar" class="img-thumbnail" [alt]="usuario.first_name">
+  </div>
+  <div class="col">
+    <ul class="list-group">
+      <li class="list-group-item">
+        <strong>Nombre:</strong>
+        {{usuario.first_name}}
+      </li>
+      <li class="list-group-item">
+        <strong>Apellido:</strong>
+        {{usuario.last_name}}
+      </li>
+    </ul>
+  </div>
+</div>
+
+Por último retoco cualquier cosa necesaria y hago el despliegue a GitHubPages.
+Recuerda que una app de Angular necesita <base href=""> y no <base href="/">
+Genial curso introductorio a NgRx.Seguir investigando.
 
